@@ -1,0 +1,30 @@
+# Python files
+__pycache__/
+*.py[cod]
+
+# Python testing files
+.coverage
+
+# Ignore macOS Finder meta
+.DS_Store
+.tm_properties
+
+# Ignore optional build / cache directory
+/build
+
+# Local tooling and session artifacts
+.claude/
+.agents/
+
+# Local app/runtime data (machine-specific)
+data/
+runtime/
+
+# Common local env files
+.env
+.env.*
+
+# OS/editor temp
+Thumbs.db
+*.tmp
+*.temp
