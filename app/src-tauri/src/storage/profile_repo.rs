@@ -1,4 +1,7 @@
-use std::{fs, path::{Path, PathBuf}};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use crate::domain::profile::Profile;
 
@@ -12,8 +15,46 @@ impl ProfileRepo {
     }
 
     pub fn save(&self, profile: &Profile) -> Result<(), String> {
+        if profile.id.trim().is_empty() {
+            return Err("profile id is required".into());
+        }
         let dir = self.root.join(&profile.id);
-        fs::create_dir_all(&dir).map_err(|err| err.to_string())?;
+        self.write_profile_to_dir(&dir, profile)
+    }
+
+    pub fn save_with_original_id(&self, original_id: &str, profile: &Profile) -> Result<(), String> {
+        if original_id.trim().is_empty() {
+            return Err("original profile id is required".into());
+        }
+        if profile.id.trim().is_empty() {
+            return Err("profile id is required".into());
+        }
+
+        if original_id == profile.id {
+            let current_path = self.profile_path(original_id);
+            if !current_path.exists() {
+                return Err("profile not found".into());
+            }
+            let dir = self.root.join(&profile.id);
+            return self.write_profile_to_dir(&dir, profile);
+        }
+
+        let old_dir = self.root.join(original_id);
+        if !old_dir.exists() {
+            return Err("profile not found".into());
+        }
+
+        let new_dir = self.root.join(&profile.id);
+        if new_dir.exists() {
+            return Err("target profile id already exists".into());
+        }
+
+        fs::rename(&old_dir, &new_dir).map_err(|err| err.to_string())?;
+        self.write_profile_to_dir(&new_dir, profile)
+    }
+
+    fn write_profile_to_dir(&self, dir: &Path, profile: &Profile) -> Result<(), String> {
+        fs::create_dir_all(dir).map_err(|err| err.to_string())?;
         let path = dir.join("profile.json");
         let content = serde_json::to_string_pretty(profile).map_err(|err| err.to_string())?;
         fs::write(path, content).map_err(|err| err.to_string())

@@ -55,11 +55,36 @@ impl RuntimeStateStore {
         self.states.insert(profile_id.into(), state);
     }
 
+    pub fn mark_stopped_if_pid(
+        &mut self,
+        profile_id: &str,
+        pid: u32,
+        exit_code: Option<i32>,
+        stopped_at: String,
+    ) -> bool {
+        let state = self.get(profile_id);
+        if state.status != RuntimeStatus::Running || state.pid != Some(pid) {
+            return false;
+        }
+        self.mark_stopped(profile_id, exit_code, stopped_at);
+        true
+    }
+
     pub fn mark_error(&mut self, profile_id: &str, error: String) {
         let mut state = self.get(profile_id);
         state.status = RuntimeStatus::Error;
         state.pid = None;
         state.last_error = Some(error);
         self.states.insert(profile_id.into(), state);
+    }
+
+    pub fn rename_profile(&mut self, old_profile_id: &str, new_profile_id: &str) {
+        if old_profile_id == new_profile_id {
+            return;
+        }
+        if let Some(mut state) = self.states.remove(old_profile_id) {
+            state.profile_id = new_profile_id.into();
+            self.states.insert(new_profile_id.into(), state);
+        }
     }
 }

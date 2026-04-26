@@ -50,3 +50,29 @@ fn appends_and_reads_log_entries() {
 
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn renames_profile_log_file() {
+    let root = temp_root();
+    let store = LogStore::new(&root);
+
+    store
+        .append(
+            "default-1",
+            &LogEntry {
+                timestamp: "2026-04-10T00:00:00Z".into(),
+                level: "info".into(),
+                message: "launch started".into(),
+                command: None,
+                exit_code: None,
+            },
+        )
+        .unwrap();
+
+    store.rename_profile("default-1", "default-2").unwrap();
+
+    assert_eq!(store.read("default-1").unwrap().len(), 0);
+    assert_eq!(store.read("default-2").unwrap().len(), 1);
+
+    fs::remove_dir_all(root).unwrap();
+}

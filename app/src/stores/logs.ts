@@ -10,5 +10,16 @@ export const useLogsStore = defineStore('logs', {
     async refresh(profileId: string) {
       this.entries[profileId] = await logsApi.getLogs(profileId)
     },
+    renameProfile(oldId: string, newId: string) {
+      if (oldId === newId) {
+        return
+      }
+      const entries = this.entries[oldId]
+      if (!entries) {
+        return
+      }
+      this.entries[newId] = entries
+      delete this.entries[oldId]
+    },
   },
 })

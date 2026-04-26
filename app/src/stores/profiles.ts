@@ -22,10 +22,11 @@ export const useProfilesStore = defineStore('profiles', {
         this.loading = false
       }
     },
-    async saveProfile(profile: Profile) {
-      const exists = this.profiles.some((item) => item.id === profile.id)
+    async saveProfile(profile: Profile, originalId?: string) {
+      const sourceId = originalId ?? profile.id
+      const exists = this.profiles.some((item) => item.id === sourceId)
       if (exists) {
-        await profilesApi.updateProfile(profile)
+        await profilesApi.updateProfile(sourceId, profile)
       } else {
         await profilesApi.createProfile(profile)
       }

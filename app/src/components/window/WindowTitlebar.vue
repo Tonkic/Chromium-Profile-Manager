@@ -4,6 +4,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 const appWindow = getCurrentWindow()
 const isMaximized = ref(false)
+let unlistenResize: (() => void) | null = null
 
 const titlebarLabel = computed(() => (isMaximized.value ? '还原窗口' : '最大化窗口'))
 
@@ -43,24 +44,26 @@ const closeWindow = async () => {
 
 onMounted(async () => {
   await syncMaximized()
-  const unlisten = await appWindow.onResized(async () => {
+  unlistenResize = await appWindow.onResized(async () => {
     await syncMaximized()
   })
-  onUnmounted(() => {
-    unlisten()
-  })
+})
+
+onUnmounted(() => {
+  unlistenResize?.()
+  unlistenResize = null
 })
 </script>
 
 <template>
-  <header class="window-titlebar">
-    <div class="window-titlebar__drag">
-      <div class="window-titlebar__brand" data-tauri-drag-region @dblclick="toggleMaximize">
-        <span class="window-dot" />
-        <strong>Chromium Profile Manager</strong>
+  <header class="window-titlebar" data-tauri-drag-region @dblclick="toggleMaximize">
+    <div class="window-titlebar__drag" data-tauri-drag-region>
+      <div class="window-titlebar__brand" data-tauri-drag-region>
+        <span class="window-dot" data-tauri-drag-region />
+        <strong data-tauri-drag-region>Chromium Profile Manager</strong>
       </div>
     </div>
-    <div class="window-titlebar__actions" @mousedown.stop>
+    <div class="window-titlebar__actions" @mousedown.stop @dblclick.stop>
       <button class="window-control is-minimize" type="button" title="最小化窗口" @mousedown.stop @click.stop="minimize">
         <span />
       </button>

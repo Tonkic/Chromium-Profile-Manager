@@ -10,10 +10,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  submit: [profile: Profile]
+  submit: [profile: Profile, originalId: string]
 }>()
 
 const form = reactive<Profile>(emptyProfile())
+const originalId = computed(() => props.modelValue?.id ?? form.id)
 
 watch(
   () => props.modelValue,
@@ -47,12 +48,16 @@ const toggleExtension = (id: string, enabled: boolean) => {
 }
 
 const submit = () => {
-  emit('submit', {
-    ...form,
-    windowSize: form.windowSize ?? [1400, 900],
-    createdAt: form.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  })
+  emit(
+    'submit',
+    {
+      ...form,
+      windowSize: form.windowSize ?? [1400, 900],
+      createdAt: form.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    originalId.value,
+  )
 }
 </script>
 
@@ -66,6 +71,7 @@ const submit = () => {
       <label>
         ID
         <input v-model="form.id" required />
+        <small class="muted">ID 用作目录名（data/profiles/&lt;id&gt;）并关联日志（data/logs/&lt;id&gt;.log）。</small>
       </label>
       <label>
         Browser Path
@@ -95,15 +101,15 @@ const submit = () => {
         启动参数
         <textarea v-model="extraArgsText" rows="4" />
       </label>
-      <fieldset>
+      <fieldset class="extensions-fieldset">
         <legend>扩展</legend>
-        <label v-for="item in availableExtensions ?? []" :key="item.id">
+        <label v-for="item in availableExtensions ?? []" :key="item.id" class="extension-checkbox-row">
           <input
             type="checkbox"
             :checked="form.extensions.some((ext) => ext.id === item.id && ext.enabled)"
             @change="toggleExtension(item.id, ($event.target as HTMLInputElement).checked)"
           />
-          {{ item.id }} ({{ item.kind }})
+          <span class="text-rect">{{ item.id }} ({{ item.kind }})</span>
         </label>
       </fieldset>
     </div>

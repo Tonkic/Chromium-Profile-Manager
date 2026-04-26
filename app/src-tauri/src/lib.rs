@@ -9,13 +9,15 @@ use std::{fs, sync::Mutex};
 use utils::paths::project_root;
 
 use commands::{
-    bookmarks::BookmarksState, extensions::ExtensionsState, launcher::RuntimeStoreState, logs::LogsState,
-    profiles::ProfilesState,
+    automation::AutomationState, bookmarks::BookmarksState, extensions::ExtensionsState,
+    launcher::RuntimeStoreState, logs::LogsState, profiles::ProfilesState,
 };
 use storage::{
     bookmark_store::BookmarkStore, extension_store::ExtensionStore, log_store::LogStore,
     profile_repo::ProfileRepo,
 };
+
+use state::automation_state::AutomationStateStore;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -30,6 +32,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(ProfilesState(Mutex::new(ProfileRepo::new(profiles_root.clone()))))
         .manage(RuntimeStoreState(Mutex::new(Default::default())))
+        .manage(AutomationState(Mutex::new(AutomationStateStore::default())))
         .manage(LogsState(Mutex::new(LogStore::new(logs_root))))
         .manage(ExtensionsState(Mutex::new(ExtensionStore::new(extensions_root))))
         .manage(BookmarksState(Mutex::new(BookmarkStore::new(profiles_root))))
@@ -41,6 +44,11 @@ pub fn run() {
             commands::launcher::launch_profile,
             commands::launcher::stop_profile,
             commands::launcher::get_runtime_state,
+            commands::automation::list_automation_scripts,
+            commands::automation::get_automation_runtime_states,
+            commands::automation::start_automation_script,
+            commands::automation::stop_automation_script,
+            commands::automation::open_automation_scripts_dir,
             commands::logs::get_logs,
             commands::extensions::list_extensions,
             commands::extensions::import_extension_dir,

@@ -44,8 +44,8 @@ const submit = () => {
       </div>
       <ul v-if="props.items.length" class="settings-chip-list">
         <li v-for="item in props.items" :key="item.id" class="settings-chip-item">
-          <strong>{{ item.id }}</strong>
-          <span class="muted">{{ item.kind }} · {{ item.path }}</span>
+          <strong class="text-rect">{{ item.id }}</strong>
+          <span class="muted text-rect">{{ item.kind }} · {{ item.path }}</span>
         </li>
       </ul>
       <p v-else class="muted">还没有导入扩展。</p>

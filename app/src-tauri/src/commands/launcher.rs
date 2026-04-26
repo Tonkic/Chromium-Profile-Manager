@@ -1,6 +1,6 @@
-use std::{path::PathBuf, process::Command, sync::Mutex};
+use std::{path::PathBuf, process::Command, sync::Mutex, thread};
 
-use tauri::State;
+use tauri::{Manager, State};
 
 use crate::{
     commands::{logs::LogsState, profiles::ProfilesState},
@@ -83,6 +83,7 @@ pub fn launch_profile(
     profiles_state: State<'_, ProfilesState>,
     runtime_state: State<'_, RuntimeStoreState>,
     logs_state: State<'_, LogsState>,
+    app: tauri::AppHandle,
 ) -> Result<RuntimeState, String> {
     let profile = profiles_state
         .0
@@ -186,6 +187,36 @@ pub fn launch_profile(
                 exit_code: None,
             },
         )?;
+
+    let profile_id_for_waiter = profile_id.clone();
+    thread::spawn(move || {
+        let mut child = child;
+        let exit_code = child.wait().ok().and_then(|status| status.code());
+        let stopped_at = chrono::Utc::now().to_rfc3339();
+        let marked_stopped = app
+            .state::<RuntimeStoreState>()
+            .0
+            .lock()
+            .map(|mut store| {
+                store.mark_stopped_if_pid(&profile_id_for_waiter, pid, exit_code, stopped_at.clone())
+            })
+            .unwrap_or(false);
+
+        if marked_stopped {
+            let _ = app.state::<LogsState>().0.lock().map(|store| {
+                let _ = store.append(
+                    &profile_id_for_waiter,
+                    &LogEntry {
+                        timestamp: stopped_at,
+                        level: "info".into(),
+                        message: format!("browser process {pid} exited"),
+                        command: None,
+                        exit_code,
+                    },
+                );
+            });
+        }
+    });
 
     Ok(runtime_state
         .0

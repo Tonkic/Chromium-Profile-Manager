@@ -25,7 +25,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: []
-  save: [profile: Profile]
+  save: [profile: Profile, originalId: string]
   'update:section': [section: SettingsSection]
   saveBookmarks: [entries: BookmarkEntry[]]
   saveQuickLinks: [entries: QuickLink[]]
@@ -58,13 +58,17 @@ const handleImportCrx = (id: string, sourcePath: string) => emit('importCrx', id
 <template>
   <div v-if="open && profile" class="settings-modal-backdrop" @click.self="emit('close')">
     <section class="settings-modal" role="dialog" aria-modal="true" aria-label="Profile 设置">
+      <button class="settings-modal-close" type="button" title="关闭设置" aria-label="关闭设置" @click="emit('close')">
+        <span class="window-control-close" />
+      </button>
       <div class="settings-modal-body full-height-body">
         <aside class="settings-modal-sidebar fixed-left-nav">
           <div class="settings-sidebar-header" :title="`${profile.name} 设置`">
             <div>
+              <p class="eyebrow">Profile Settings</p>
               <h2>{{ profile.name }}</h2>
+              <p class="muted text-rect">{{ profile.id }}</p>
             </div>
-            <button class="secondary-button" title="关闭设置" @click="emit('close')">关闭</button>
           </div>
           <ProfileSettingsNav :model-value="section" @update:model-value="emit('update:section', $event)" />
         </aside>
@@ -76,7 +80,11 @@ const handleImportCrx = (id: string, sourcePath: string) => emit('importCrx', id
                 <h3 title="管理 profile 基础资料">常规</h3>
               </div>
             </div>
-            <ProfileForm :model-value="profile" :available-extensions="extensions ?? []" @submit="emit('save', $event)" />
+            <ProfileForm
+              :model-value="profile"
+              :available-extensions="extensions ?? []"
+              @submit="(profileValue, originalId) => emit('save', profileValue, originalId)"
+            />
           </section>
 
           <section v-else-if="section === 'launch'" class="settings-panel">

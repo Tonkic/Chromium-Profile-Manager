@@ -27,3 +27,16 @@ fn rejects_duplicate_start_when_running_or_starting() {
     store.mark_starting("default-1", vec!["chrome.exe".into()]).unwrap();
     assert!(store.mark_starting("default-1", vec!["chrome.exe".into()]).is_err());
 }
+
+#[test]
+fn migrates_runtime_state_on_profile_rename() {
+    let mut store = RuntimeStateStore::default();
+    store.mark_running("default-1", 4242, "2026-04-10T00:00:00Z".into());
+
+    store.rename_profile("default-1", "default-2");
+
+    let migrated = store.get("default-2");
+    assert_eq!(migrated.profile_id, "default-2");
+    assert_eq!(migrated.pid, Some(4242));
+    assert_eq!(store.get("default-1").status, RuntimeStatus::Idle);
+}

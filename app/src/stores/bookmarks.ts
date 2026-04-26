@@ -24,5 +24,20 @@ export const useBookmarksStore = defineStore('bookmarks', {
       await bookmarksApi.saveQuickLinks(profileId, quickLinks)
       await this.refresh(profileId)
     },
+    renameProfile(oldId: string, newId: string) {
+      if (oldId === newId) {
+        return
+      }
+      const entries = this.entries[oldId]
+      const quickLinks = this.quickLinks[oldId]
+      if (entries) {
+        this.entries[newId] = entries
+        delete this.entries[oldId]
+      }
+      if (quickLinks) {
+        this.quickLinks[newId] = quickLinks
+        delete this.quickLinks[oldId]
+      }
+    },
   },
 })

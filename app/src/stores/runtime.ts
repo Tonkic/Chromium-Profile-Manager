@@ -21,5 +21,16 @@ export const useRuntimeStore = defineStore('runtime', {
       await launcherApi.stopProfile(profileId)
       await this.refresh(profileId)
     },
+    renameProfile(oldId: string, newId: string) {
+      if (oldId === newId) {
+        return
+      }
+      const state = this.states[oldId]
+      if (!state) {
+        return
+      }
+      this.states[newId] = { ...state, profileId: newId }
+      delete this.states[oldId]
+    },
   },
 })

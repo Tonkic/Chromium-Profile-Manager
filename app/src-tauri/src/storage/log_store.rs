@@ -21,6 +21,25 @@ impl LogStore {
         Self { root: root.into() }
     }
 
+    pub fn rename_profile(&self, old_profile_id: &str, new_profile_id: &str) -> Result<(), String> {
+        if old_profile_id == new_profile_id {
+            return Ok(());
+        }
+
+        fs::create_dir_all(&self.root).map_err(|err| err.to_string())?;
+        let old_path = self.log_path(old_profile_id);
+        let new_path = self.log_path(new_profile_id);
+
+        if new_path.exists() {
+            return Err("target profile log already exists".into());
+        }
+        if !old_path.exists() {
+            return Ok(());
+        }
+
+        fs::rename(old_path, new_path).map_err(|err| err.to_string())
+    }
+
     pub fn append(&self, profile_id: &str, entry: &LogEntry) -> Result<(), String> {
         fs::create_dir_all(&self.root).map_err(|err| err.to_string())?;
         let mut file = OpenOptions::new()

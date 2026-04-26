@@ -22,3 +22,7 @@ pub fn resolve_from_project_root(value: &str) -> PathBuf {
         project_root().join(path)
     }
 }
+
+pub fn automation_scripts_dir() -> PathBuf {
+    project_root().join("scripts/automation")
+}
