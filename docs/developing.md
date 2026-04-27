@@ -12,9 +12,16 @@ Contents:
 
 ## Branches
 
-Development is focused on `master`, and any changes in there should not break anything unless platforms break during a Chromium version rebase.
+Development is focused on `dev`, and ongoing changes should be made there first.
 
-Larger feature changes or hotfixes must be done in a separate branch. Once they are ready, then a Pull Request can be made onto `master` (for contributors with write access, merging directly via a git client is fine). After the branch is merged, it should be removed.
+Recommended flow:
+
+1. Create a feature or fix branch from `dev`.
+2. Open a Pull Request into `dev` for review and integration.
+3. When `dev` is ready to ship, open a Pull Request from `dev` into `main`.
+4. Merge `dev` into `main` only for release-ready changes.
+
+After the branch is merged, it should be removed.
 
 ## Adding command-line flags and `chrome://flags` options
 
