@@ -19,6 +19,7 @@ __pycache__/
 # Local app/runtime data (machine-specific)
 data/
 runtime/
+scripts/automation/
 
 # Common local env files
 .env
@@ -61,3 +62,8 @@ app/.vite/
 
 # Rust/Tauri build artifacts
 app/src-tauri/target/
+
+# App local environment/cache
+app/.env
+app/.env.*
+app/coverage/
