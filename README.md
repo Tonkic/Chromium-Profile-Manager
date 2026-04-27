@@ -1,5 +1,7 @@
 # Chromium Profile Manager
 
+[简体中文文档 / Simplified Chinese](./README.zh-CN.md)
+
 This repository contains two related layers:
 
 1. **ungoogled-chromium shared transformation layer** (repo root)
@@ -10,7 +12,11 @@ This repository contains two related layers:
 
 > This repo is not the full Chromium source tree.
 
-## Desktop app (app/) features
+## Acknowledgments
+
+This project is built on top of and inspired by [ungoogled-chromium](https://github.com/ungoogled-software/ungoogled-chromium).
+
+## Desktop app (`app/`) features
 
 - Profile list and quick operations (launch / stop / settings / automation)
 - Create new profile from the profiles grid (`+` card at the bottom)
@@ -29,7 +35,7 @@ This repository contains two related layers:
 - If Chromium is closed externally, runtime state is updated to `stopped` automatically.
 - `stop_profile` currently updates app runtime state/logs but **does not kill the OS browser process**.
 
-## Data layout (app)
+## Data layout (`app`)
 
 - `data/profiles/<profile-id>/profile.json`
 - `data/profiles/<profile-id>/bookmarks.json`
