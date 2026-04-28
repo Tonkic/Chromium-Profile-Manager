@@ -39,9 +39,10 @@ const reset = () => {
         <p class="muted">调整全局字体、主色与背景，这里是软件级设置，不影响单个 Profile 配置。</p>
       </div>
       <div class="theme-preview-surface compact-preview">
-        <span class="runtime-badge" data-status="running">running</span>
-        <button type="button">Primary</button>
-        <button type="button" class="secondary-button">Secondary</button>
+        <div class="theme-preview-cardlet">
+          <strong>全局主题</strong>
+          <span class="muted">实时预览字体、主色和背景</span>
+        </div>
       </div>
     </section>
 
@@ -79,10 +80,9 @@ const reset = () => {
       </div>
       <div class="theme-preview-surface">
         <div class="theme-preview-cardlet">
-          <strong>Profile card</strong>
+          <strong>示例卡片</strong>
           <span class="muted">{{ draft.fontFamily }}</span>
         </div>
-        <span class="runtime-badge" data-status="starting">starting</span>
       </div>
     </section>
   </section>

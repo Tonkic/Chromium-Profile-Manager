@@ -36,5 +36,15 @@ export const useProfilesStore = defineStore('profiles', {
       await profilesApi.deleteProfile(id)
       await this.fetchProfiles()
     },
+    async exportProfile(id: string) {
+      return profilesApi.exportProfileArchive(id)
+    },
+    async importProfile() {
+      const profile = await profilesApi.importProfileArchive()
+      if (profile) {
+        await this.fetchProfiles()
+      }
+      return profile
+    },
   },
 })

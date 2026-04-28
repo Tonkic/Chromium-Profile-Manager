@@ -1,5 +1,34 @@
-# Vue 3 + TypeScript + Vite
+# Chromium Profile Manager App
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Electron + Vue 3 + TypeScript desktop app for managing local Chromium profiles.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## Development
+
+```sh
+npm install
+npm run dev:electron
+```
+
+## Build
+
+```sh
+npm run build
+npm run build:electron
+```
+
+## Test
+
+```sh
+npm test -- --run
+```
+
+## Data layout
+
+The app reads and writes project-level data without migration:
+
+- `../data/profiles/<profile-id>/profile.json`
+- `../data/profiles/<profile-id>/bookmarks.json`
+- `../data/profiles/<profile-id>/quick-links.json`
+- `../data/logs/<profile-id>.log`
+- `../data/extensions/<extension-id>/...` or `../data/extensions/<extension-id>.crx`
+- `../scripts/automation/*.py`

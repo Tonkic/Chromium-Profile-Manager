@@ -55,12 +55,14 @@ htmlcov/
 .nox/
 .tox/
 
-# Frontend build caches
+# Frontend/Electron build caches
 app/node_modules/
 app/dist/
+app/dist-electron/
+app/release/
 app/.vite/
 
-# Rust/Tauri build artifacts
+# Legacy Rust/Tauri build artifacts
 app/src-tauri/target/
 
 # App local environment/cache
