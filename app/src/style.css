@@ -150,7 +150,7 @@ p {
 .window-titlebar {
   height: 56px;
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(320px, 560px) auto;
+  grid-template-columns: minmax(220px, 1fr) auto;
   align-items: center;
   gap: 12px;
   padding: 0 10px 0 16px;
@@ -192,49 +192,6 @@ p {
   box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 46%, transparent);
 }
 
-.window-titlebar__center {
-  min-width: 0;
-  -webkit-app-region: no-drag;
-}
-
-.window-titlebar__search {
-  height: 38px;
-  border-radius: 15px;
-  border: 1px solid var(--border-soft);
-  background: rgba(8, 12, 22, 0.5);
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-  padding: 0 10px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-.window-titlebar__search-icon {
-  color: var(--text-subtle);
-  font-size: 13px;
-}
-
-.window-titlebar__search input {
-  border: 0;
-  background: transparent;
-  color: var(--text-strong);
-  min-width: 0;
-  outline: none;
-}
-
-.window-titlebar__search input::placeholder {
-  color: var(--text-subtle);
-}
-
-.window-titlebar__search kbd {
-  border-radius: 8px;
-  border: 1px solid var(--border-soft);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-subtle);
-  font-size: 10px;
-  padding: 2px 6px;
-}
 
 .window-titlebar__actions {
   display: inline-flex;
@@ -246,21 +203,6 @@ p {
   -webkit-app-region: no-drag;
 }
 
-.window-quick-action {
-  height: 32px;
-  border-radius: 11px;
-  border: 1px solid var(--border-soft);
-  padding: 0 12px;
-  color: var(--text-body);
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: none;
-}
-
-.window-quick-action:hover:not(:disabled) {
-  transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.14);
-  box-shadow: none;
-}
 
 .window-control {
   width: 34px;
@@ -497,21 +439,6 @@ p {
   line-height: 1.1;
 }
 
-.app-main-metrics {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.app-metric-pill {
-  border-radius: 999px;
-  border: 1px solid var(--border-soft);
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-body);
-  padding: 6px 10px;
-  font-size: 12px;
-}
 
 .app-shell__content {
   min-width: 0;
@@ -1692,11 +1619,6 @@ textarea,
     height: 50px;
     grid-template-columns: minmax(0, 1fr) auto;
     padding: 0 6px 0 10px;
-  }
-
-  .window-titlebar__center,
-  .window-quick-action {
-    display: none;
   }
 
   .app-shell-body {

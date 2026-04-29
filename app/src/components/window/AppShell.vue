@@ -8,7 +8,6 @@ import SoftwareSettingsPage from '../../pages/SoftwareSettingsPage.vue'
 type AppSection = 'profiles' | 'profile-transfer' | 'software-settings'
 
 const activeSection = ref<AppSection>('profiles')
-const renderVersion = ref(0)
 
 const sections: Array<{ key: AppSection; eyebrow: string; label: string; description: string }> = [
   { key: 'profiles', eyebrow: 'Workspace', label: 'Profiles', description: '管理浏览器配置、启动状态与自动化脚本' },
@@ -17,20 +16,12 @@ const sections: Array<{ key: AppSection; eyebrow: string; label: string; descrip
 ]
 
 const currentSection = computed(() => sections.find((section) => section.key === activeSection.value) ?? sections[0])
-const currentRenderKey = computed(() => `${activeSection.value}-${renderVersion.value}`)
 
-const openSettings = () => {
-  activeSection.value = 'software-settings'
-}
-
-const refreshCurrentSection = () => {
-  renderVersion.value += 1
-}
 </script>
 
 <template>
   <div class="app-shell">
-    <WindowTitlebar @open-settings="openSettings" @request-refresh="refreshCurrentSection" />
+    <WindowTitlebar />
     <div class="app-shell-body">
       <div class="app-shell-frame">
         <aside class="app-nav-sidebar">
@@ -67,17 +58,12 @@ const refreshCurrentSection = () => {
               <p class="eyebrow">{{ currentSection.eyebrow }}</p>
               <h2>{{ currentSection.label }}</h2>
             </div>
-            <div class="app-main-metrics">
-              <span class="app-metric-pill">Glass UI</span>
-              <span class="app-metric-pill">Desktop</span>
-              <span class="app-metric-pill">Local Data</span>
-            </div>
           </header>
 
           <main class="app-shell__content">
-            <ProfilesPage v-if="activeSection === 'profiles'" :key="currentRenderKey" />
-            <ProfileTransferPage v-else-if="activeSection === 'profile-transfer'" :key="currentRenderKey" />
-            <SoftwareSettingsPage v-else :key="currentRenderKey" />
+            <ProfilesPage v-if="activeSection === 'profiles'"  />
+            <ProfileTransferPage v-else-if="activeSection === 'profile-transfer'"  />
+            <SoftwareSettingsPage v-else  />
           </main>
         </section>
       </div>
