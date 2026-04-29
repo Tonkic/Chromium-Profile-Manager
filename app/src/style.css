@@ -181,15 +181,13 @@ p {
   -webkit-app-region: drag;
 }
 
-.window-dot {
-  width: 12px;
-  height: 12px;
+.window-app-icon {
+  width: 24px;
+  height: 24px;
   flex: 0 0 auto;
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 35% 30%, #fff, transparent 22%),
-    linear-gradient(135deg, var(--accent), var(--accent-2));
-  box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 46%, transparent);
+  border-radius: 7px;
+  object-fit: cover;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 
@@ -346,6 +344,11 @@ p {
     radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.7), transparent 18%),
     linear-gradient(135deg, var(--accent), var(--accent-2));
   box-shadow: 0 14px 30px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.app-nav-logo-image {
+  object-fit: cover;
+  background: transparent;
 }
 
 .app-nav {
@@ -1047,6 +1050,11 @@ textarea,
   border: 1px solid var(--border-soft);
 }
 
+.runtime-help-card {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border-soft)) !important;
+  background: color-mix(in srgb, var(--accent-soft) 72%, rgba(2, 6, 23, 0.34)) !important;
+}
+
 .runtime-details dt {
   margin-bottom: 6px;
   font-size: 12px;
@@ -1124,9 +1132,32 @@ textarea,
   overflow: visible;
 }
 
+.runtime-manager-field,
 .extensions-fieldset {
   grid-column: 1 / -1;
   min-width: 0;
+}
+
+.runtime-manager-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border-soft);
+  background: rgba(2, 6, 23, 0.26);
+}
+
+.runtime-manager-actions {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+}
+
+.runtime-manager-actions button,
+.runtime-manager-actions select {
+  min-height: 40px;
 }
 
 .extension-checkbox-row {
@@ -1532,6 +1563,7 @@ textarea,
   .grid,
   .import-grid,
   .overview-grid,
+  .runtime-manager-actions,
   .launch-details,
   .settings-preview-card {
     grid-template-columns: 1fr;

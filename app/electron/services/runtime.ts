@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import type { Profile, RuntimeState } from './types.js'
 import { extensionsRoot, resolveFromProjectRoot, toDisplayPath } from './paths.js'
@@ -76,6 +77,23 @@ export const launchProfile = async (profileId: string): Promise<RuntimeState> =>
     `resolved user data dir: ${toDisplayPath(userDataDir)}`,
   ]
 
+  if (!existsSync(browserPath)) {
+    const message = `浏览器路径不存在: ${toDisplayPath(browserPath)}`
+    states.set(profileId, {
+      ...current,
+      status: 'error',
+      pid: undefined,
+      lastError: message,
+    })
+    await appendLog(profileId, {
+      timestamp: new Date().toISOString(),
+      level: 'error',
+      message,
+      command: [...resolvedCommandPreview, ...commandPreview],
+    })
+    throw new Error(message)
+  }
+
   states.set(profileId, {
     profileId,
     status: 'starting',
@@ -89,66 +107,9 @@ export const launchProfile = async (profileId: string): Promise<RuntimeState> =>
     command: [...resolvedCommandPreview, ...commandPreview],
   })
 
+  let child
   try {
-    const child = spawn(spec.program, spec.args, { windowsHide: false })
-    const pid = child.pid
-    if (!pid) {
-      throw new Error('failed to start browser process')
-    }
-    const startedAt = new Date().toISOString()
-    const runningState: RuntimeState = {
-      ...getState(profileId),
-      status: 'running',
-      pid,
-      exitCode: undefined,
-      lastError: undefined,
-      startedAt,
-    }
-    states.set(profileId, runningState)
-    await appendLog(profileId, {
-      timestamp: startedAt,
-      level: 'info',
-      message: `profile running with pid ${pid}`,
-      command: [...resolvedCommandPreview, ...commandPreview],
-    })
-
-    child.once('exit', async (code) => {
-      const latest = getState(profileId)
-      if (latest.status !== 'running' || latest.pid !== pid) {
-        return
-      }
-      const stoppedAt = new Date().toISOString()
-      states.set(profileId, {
-        ...latest,
-        status: 'stopped',
-        pid: undefined,
-        exitCode: code ?? undefined,
-        stoppedAt,
-      })
-      await appendLog(profileId, {
-        timestamp: stoppedAt,
-        level: 'info',
-        message: `browser process ${pid} exited`,
-        exitCode: code ?? undefined,
-      })
-    })
-
-    child.once('error', async (error) => {
-      states.set(profileId, {
-        ...getState(profileId),
-        status: 'error',
-        pid: undefined,
-        lastError: error.message,
-      })
-      await appendLog(profileId, {
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: error.message,
-        command: [...resolvedCommandPreview, ...commandPreview],
-      })
-    })
-
-    return runningState
+    child = spawn(spec.program, spec.args, { windowsHide: false })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     states.set(profileId, {
@@ -165,6 +126,79 @@ export const launchProfile = async (profileId: string): Promise<RuntimeState> =>
     })
     throw new Error(message)
   }
+
+  const startedAt = new Date().toISOString()
+  const pid = child.pid
+  if (!pid) {
+    const message = 'failed to start browser process'
+    states.set(profileId, {
+      ...getState(profileId),
+      status: 'error',
+      pid: undefined,
+      lastError: message,
+    })
+    await appendLog(profileId, {
+      timestamp: startedAt,
+      level: 'error',
+      message,
+      command: [...resolvedCommandPreview, ...commandPreview],
+    })
+    throw new Error(message)
+  }
+
+  const runningState: RuntimeState = {
+    ...getState(profileId),
+    status: 'running',
+    pid,
+    exitCode: undefined,
+    lastError: undefined,
+    startedAt,
+  }
+  states.set(profileId, runningState)
+  await appendLog(profileId, {
+    timestamp: startedAt,
+    level: 'info',
+    message: `profile running with pid ${pid}`,
+    command: [...resolvedCommandPreview, ...commandPreview],
+  })
+
+  child.once('error', async (error) => {
+    states.set(profileId, {
+      ...getState(profileId),
+      status: 'error',
+      pid: undefined,
+      lastError: error.message,
+    })
+    await appendLog(profileId, {
+      timestamp: new Date().toISOString(),
+      level: 'error',
+      message: error.message,
+      command: [...resolvedCommandPreview, ...commandPreview],
+    })
+  })
+
+  child.once('exit', async (code) => {
+    const latest = getState(profileId)
+    if (latest.status !== 'running' || latest.pid !== pid) {
+      return
+    }
+    const stoppedAt = new Date().toISOString()
+    states.set(profileId, {
+      ...latest,
+      status: 'stopped',
+      pid: undefined,
+      exitCode: code ?? undefined,
+      stoppedAt,
+    })
+    await appendLog(profileId, {
+      timestamp: stoppedAt,
+      level: 'info',
+      message: `browser process ${pid} exited`,
+      exitCode: code ?? undefined,
+    })
+  })
+
+  return runningState
 }
 
 export const renameRuntimeProfile = (oldProfileId: string, newProfileId: string) => {

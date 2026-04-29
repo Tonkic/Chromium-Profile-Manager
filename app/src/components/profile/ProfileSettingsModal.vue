@@ -114,6 +114,12 @@ const handleImportCrx = (id: string, sourcePath: string) => emit('importCrx', id
                 <dt>最后错误</dt>
                 <dd class="command-preview">{{ runtime?.lastError ?? '-' }}</dd>
               </div>
+              <div v-if="runtime?.lastError?.includes('浏览器路径不存在')" class="full-row runtime-help-card">
+                <dt>Runtime</dt>
+                <dd>
+                  当前缺少 chrome.exe 所在完整 runtime。请切到“常规”里的 Browser Path，点击“读取 Release Runtime”后选择“下载并使用”。
+                </dd>
+              </div>
               <div class="full-row">
                 <dt>最后命令</dt>
                 <dd class="command-preview">{{ runtime?.lastCommand?.join(' ') ?? '-' }}</dd>

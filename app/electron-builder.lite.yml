@@ -2,7 +2,7 @@ appId: com.tonkic.chromiumprofilemanager
 productName: Chromium Profile Manager
 directories:
   output: release
-artifactName: '${productName}-${version}-${os}-${arch}-full.${ext}'
+artifactName: '${productName}-${version}-${os}-${arch}-lite.${ext}'
 files:
   - dist/**
   - dist-electron/**
@@ -14,10 +14,6 @@ extraResources:
       - '**/*'
   - from: ../scripts
     to: scripts
-    filter:
-      - '**/*'
-  - from: ../runtime/ungoogled-chromium-146
-    to: runtime/ungoogled-chromium-146
     filter:
       - '**/*'
 win:
