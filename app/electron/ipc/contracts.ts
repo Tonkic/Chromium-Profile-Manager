@@ -5,6 +5,8 @@ export const commandNames = [
   'delete_profile',
   'export_profile_archive',
   'import_profile_archive',
+  'export_profile_archives',
+  'import_profile_archives',
   'launch_profile',
   'stop_profile',
   'get_runtime_state',

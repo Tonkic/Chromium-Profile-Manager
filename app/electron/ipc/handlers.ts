@@ -33,6 +33,14 @@ const arrayField = <T>(payload: CommandPayload, key: string) => {
   return value as T[]
 }
 
+const booleanField = (payload: CommandPayload, key: string) => {
+  const value = payload?.[key]
+  if (typeof value !== 'boolean') {
+    throw new Error(`${key} is required`)
+  }
+  return value
+}
+
 const handleCommand = async (command: CommandName, payload: CommandPayload) => {
   switch (command) {
     case 'list_profiles':
@@ -56,6 +64,10 @@ const handleCommand = async (command: CommandName, payload: CommandPayload) => {
       return profileTransfer.exportProfileArchive(stringField(payload, 'profileId'))
     case 'import_profile_archive':
       return profileTransfer.importProfileArchive()
+    case 'export_profile_archives':
+      return profileTransfer.exportProfileArchives(arrayField<string>(payload, 'profileIds'), booleanField(payload, 'includeUserData'))
+    case 'import_profile_archives':
+      return profileTransfer.importProfileArchives()
     case 'launch_profile':
       return runtime.launchProfile(stringField(payload, 'profileId'))
     case 'stop_profile':

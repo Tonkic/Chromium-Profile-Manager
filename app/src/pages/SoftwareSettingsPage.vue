@@ -3,25 +3,34 @@ import { reactive, watch } from 'vue'
 import { useSoftwareSettingsStore } from '../stores/software_settings'
 
 const softwareSettingsStore = useSoftwareSettingsStore()
+
 const draft = reactive({
-  fontFamily: softwareSettingsStore.fontFamily,
-  accentColor: softwareSettingsStore.accentColor,
-  backgroundColor: softwareSettingsStore.backgroundColor,
+  themeId: softwareSettingsStore.themeId,
+  fontId: softwareSettingsStore.fontId,
 })
 
 watch(
-  () => [softwareSettingsStore.fontFamily, softwareSettingsStore.accentColor, softwareSettingsStore.backgroundColor],
+  () => [softwareSettingsStore.themeId, softwareSettingsStore.fontId],
   () => {
-    draft.fontFamily = softwareSettingsStore.fontFamily
-    draft.accentColor = softwareSettingsStore.accentColor
-    draft.backgroundColor = softwareSettingsStore.backgroundColor
+    if (draft.themeId !== softwareSettingsStore.themeId) {
+      draft.themeId = softwareSettingsStore.themeId
+    }
+    if (draft.fontId !== softwareSettingsStore.fontId) {
+      draft.fontId = softwareSettingsStore.fontId
+    }
+  },
+)
+
+watch(
+  () => [draft.themeId, draft.fontId],
+  ([themeId, fontId]) => {
+    softwareSettingsStore.preview(themeId, fontId)
   },
 )
 
 const save = () => {
-  softwareSettingsStore.fontFamily = draft.fontFamily
-  softwareSettingsStore.accentColor = draft.accentColor
-  softwareSettingsStore.backgroundColor = draft.backgroundColor
+  softwareSettingsStore.themeId = draft.themeId
+  softwareSettingsStore.fontId = draft.fontId
   softwareSettingsStore.save()
 }
 
@@ -36,12 +45,11 @@ const reset = () => {
       <div>
         <p class="eyebrow">Preferences</p>
         <h2>Software Settings</h2>
-        <p class="muted">调整全局字体、主色与背景，这里是软件级设置，不影响单个 Profile 配置。</p>
       </div>
       <div class="theme-preview-surface compact-preview">
         <div class="theme-preview-cardlet">
-          <strong>全局主题</strong>
-          <span class="muted">实时预览字体、主色和背景</span>
+          <strong>Theme</strong>
+          <span class="muted">{{ softwareSettingsStore.themeOptions.find((item) => item.id === draft.themeId)?.label }}</span>
         </div>
       </div>
     </section>
@@ -50,18 +58,21 @@ const reset = () => {
       <form class="profile-form" @submit.prevent="save">
         <div class="grid">
           <label>
+            主题
+            <select v-model="draft.themeId">
+              <option v-for="theme in softwareSettingsStore.themeOptions" :key="theme.id" :value="theme.id">
+                {{ theme.label }}
+              </option>
+            </select>
+          </label>
+
+          <label>
             字体
-            <input v-model="draft.fontFamily" placeholder="Inter, system-ui, sans-serif" />
-          </label>
-
-          <label>
-            主色
-            <input v-model="draft.accentColor" type="color" />
-          </label>
-
-          <label>
-            背景色
-            <input v-model="draft.backgroundColor" type="color" />
+            <select v-model="draft.fontId">
+              <option v-for="font in softwareSettingsStore.fontOptions" :key="font.id" :value="font.id">
+                {{ font.label }}
+              </option>
+            </select>
           </label>
         </div>
 
@@ -70,20 +81,6 @@ const reset = () => {
           <button type="button" class="secondary-button" @click="reset">恢复默认</button>
         </div>
       </form>
-    </section>
-
-    <section class="card settings-preview-card">
-      <div>
-        <p class="eyebrow">Live Preview</p>
-        <h3>Theme sample</h3>
-        <p class="muted">保存后会把主色、背景和字体应用到整个桌面应用。</p>
-      </div>
-      <div class="theme-preview-surface">
-        <div class="theme-preview-cardlet">
-          <strong>示例卡片</strong>
-          <span class="muted">{{ draft.fontFamily }}</span>
-        </div>
-      </div>
     </section>
   </section>
 </template>

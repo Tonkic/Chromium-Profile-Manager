@@ -26,7 +26,6 @@ const { scripts } = storeToRefs(automationStore)
 const editing = ref<Profile | null>(null)
 const settingsOpen = ref(false)
 const activeSettingsSection = ref<SettingsSection>('general')
-const transferMessage = ref('')
 
 watch(editing, () => {
   settingsOpen.value = false
@@ -76,7 +75,6 @@ watch(
 )
 
 const sortedProfiles = computed(() => profiles.value)
-const editingSaved = computed(() => Boolean(editing.value && profiles.value.some((profile) => profile.id === editing.value?.id)))
 const currentBookmarks = computed(() => (editing.value ? bookmarksStore.entries[editing.value.id] : []))
 const currentQuickLinks = computed(() => (editing.value ? bookmarksStore.quickLinks[editing.value.id] : []))
 const currentLogs = computed(() => (editing.value ? logsStore.entries[editing.value.id] : []))
@@ -197,51 +195,10 @@ const openAutomationDir = async () => {
   await automationStore.openScriptsDir()
 }
 
-const exportProfile = async (profile: Profile) => {
-  try {
-    const filePath = await profilesStore.exportProfile(profile.id)
-    transferMessage.value = filePath ? `已导出：${filePath}` : '已取消导出。'
-  } catch (error) {
-    transferMessage.value = error instanceof Error ? error.message : String(error)
-  }
-}
-
-const importProfile = async () => {
-  try {
-    const profile = await profilesStore.importProfile()
-    if (!profile) {
-      transferMessage.value = '已取消导入。'
-      return
-    }
-    editing.value = profile
-    await Promise.all([
-      runtimeStore.refresh(profile.id),
-      logsStore.refresh(profile.id),
-      bookmarksStore.refresh(profile.id),
-      automationStore.refreshProfileStates(profile.id),
-    ])
-    transferMessage.value = `已导入：${profile.name}`
-  } catch (error) {
-    transferMessage.value = error instanceof Error ? error.message : String(error)
-  }
-}
-
 </script>
 
 <template>
   <section class="profiles-detail-content">
-    <section class="card profile-transfer-card">
-      <div>
-        <h3>Profile 导入 / 导出</h3>
-        <p class="muted">使用 zip 配置包保存 profile.json、书签、快捷链接和日志，不包含 Chromium user-data 缓存目录。</p>
-        <p v-if="transferMessage" class="muted text-rect">{{ transferMessage }}</p>
-      </div>
-      <div class="hero-actions">
-        <button class="secondary-button" type="button" @click="importProfile">导入 Profile</button>
-        <button type="button" :disabled="!editingSaved || !editing" @click="editing && exportProfile(editing)">导出当前 Profile</button>
-      </div>
-    </section>
-
     <section class="profiles-scroll-grid">
       <article
         v-for="profile in sortedProfiles"
@@ -262,7 +219,6 @@ const importProfile = async () => {
             {{ isRunningStatus(runtimeStore.states[profile.id]?.status) ? '停止' : '启动' }}
           </button>
           <button class="secondary-button" @click="toggleAutomationMenu(profile)">自动化</button>
-          <button class="secondary-button" @click="exportProfile(profile)">导出</button>
           <button class="secondary-button" @click="editing = profile; settingsOpen = true">设置</button>
         </div>
       </article>

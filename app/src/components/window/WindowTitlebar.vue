@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
+const emit = defineEmits<{
+  (event: 'open-settings'): void
+  (event: 'request-refresh'): void
+}>()
+
 const isMaximized = ref(false)
 let unlistenMaximized: (() => void) | null = null
 
@@ -55,7 +60,18 @@ onUnmounted(() => {
         <strong>Chromium Profile Manager</strong>
       </div>
     </div>
+
+    <div class="window-titlebar__center" @mousedown.stop @dblclick.stop>
+      <label class="window-titlebar__search" aria-label="搜索">
+        <span class="window-titlebar__search-icon">⌕</span>
+        <input type="text" placeholder="Search profiles, logs, scripts..." />
+        <kbd>Ctrl+K</kbd>
+      </label>
+    </div>
+
     <div class="window-titlebar__actions" @mousedown.stop @dblclick.stop>
+      <button class="window-quick-action" type="button" @click.stop="emit('request-refresh')">同步</button>
+      <button class="window-quick-action" type="button" @click.stop="emit('open-settings')">设置</button>
       <button class="window-control is-minimize" type="button" title="最小化窗口" @mousedown.stop @click.stop="minimize">
         <span />
       </button>
