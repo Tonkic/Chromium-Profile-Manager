@@ -66,8 +66,28 @@ jobs:
       - name: Install app dependencies
         run: npm --prefix app ci
 
-      - name: Build Electron Windows bundles
-        run: npm --prefix app run build:electron
+      - name: Build Lite Electron Windows bundles
+        run: npm --prefix app run build:electron:lite
+
+      - name: Prepare runtime release asset
+        shell: pwsh
+        run: |
+          if (Test-Path runtime/downloads/ungoogled-chromium_146.0.7680.177-1.1_windows_x64.zip) {
+            Copy-Item runtime/downloads/ungoogled-chromium_146.0.7680.177-1.1_windows_x64.zip app/release/runtime-windows-x64-ungoogled-chromium-146.zip -Force
+          } elseif (Test-Path runtime/ungoogled-chromium-146) {
+            Compress-Archive -Path runtime/ungoogled-chromium-146 -DestinationPath app/release/runtime-windows-x64-ungoogled-chromium-146.zip -Force
+          } else {
+            Write-Host 'Runtime asset is not available in CI workspace; skipping runtime/full artifacts.'
+          }
+
+      - name: Build Full Electron Windows bundles
+        shell: pwsh
+        run: |
+          if (Test-Path runtime/ungoogled-chromium-146) {
+            npm --prefix app run build:electron:full
+          } else {
+            Write-Host 'Runtime directory is not available; skipping Full installer.'
+          }
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
@@ -76,3 +96,4 @@ jobs:
           files: |
             app/release/*.exe
             app/release/*.msi
+            app/release/runtime-windows-x64-*.zip

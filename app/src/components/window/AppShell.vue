@@ -26,7 +26,7 @@ const currentSection = computed(() => sections.find((section) => section.key ===
       <div class="app-shell-frame">
         <aside class="app-nav-sidebar">
           <div class="app-nav-brand">
-            <div class="app-nav-logo" aria-hidden="true">CP</div>
+            <img class="app-nav-logo app-nav-logo-image" src="/build/icons/icon-64.png" alt="" />
             <div>
               <p class="eyebrow">Chromium</p>
               <h1>Profile Manager</h1>

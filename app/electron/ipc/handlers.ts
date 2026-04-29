@@ -8,6 +8,7 @@ import * as logs from '../services/logs.js'
 import * as profiles from '../services/profiles.js'
 import * as profileTransfer from '../services/profile_transfer.js'
 import * as runtime from '../services/runtime.js'
+import * as runtimeManager from '../services/runtime_manager.js'
 
 const stringField = (payload: CommandPayload, key: string) => {
   const value = payload?.[key]
@@ -74,6 +75,12 @@ const handleCommand = async (command: CommandName, payload: CommandPayload) => {
       return runtime.stopProfile(stringField(payload, 'profileId'))
     case 'get_runtime_state':
       return runtime.getRuntimeState(stringField(payload, 'profileId'))
+    case 'list_runtime_releases':
+      return runtimeManager.listRuntimeReleases()
+    case 'install_runtime_release':
+      return runtimeManager.installRuntimeRelease(objectField<runtimeManager.RuntimeReleaseAsset>(payload, 'asset'))
+    case 'get_runtime_install_state':
+      return runtimeManager.getRuntimeInstallState()
     case 'list_automation_scripts':
       return automation.listAutomationScripts()
     case 'get_automation_runtime_states':
@@ -108,6 +115,11 @@ export const registerIpcHandlers = () => {
     if (!isCommandName(command)) {
       throw new Error(`Unknown command: ${command}`)
     }
-    return handleCommand(command, payload)
+    try {
+      return await handleCommand(command, payload)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      throw new Error(message)
+    }
   })
 }

@@ -51,7 +51,7 @@ onUnmounted(() => {
   <header class="window-titlebar" @dblclick="toggleMaximize">
     <div class="window-titlebar__drag">
       <div class="window-titlebar__brand">
-        <span class="window-dot" />
+        <img class="window-app-icon" src="/build/icons/icon-32.png" alt="" />
         <strong>Chromium Profile Manager</strong>
       </div>
     </div>

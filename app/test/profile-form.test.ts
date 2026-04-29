@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import ProfileForm from '../src/components/profile/ProfileForm.vue'
 
 describe('ProfileForm', () => {
   it('emits normalized profile data on submit', async () => {
+    setActivePinia(createPinia())
     const wrapper = mount(ProfileForm)
 
     await wrapper.findAll('input')[0].setValue('工作环境')

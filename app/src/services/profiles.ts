@@ -26,6 +26,9 @@ export const exportProfileArchive = (profileId: string) =>
 export const importProfileArchive = () => tauriInvoke<Profile | undefined>('import_profile_archive')
 
 export const exportProfileArchives = (profileIds: string[], includeUserData: boolean) =>
-  tauriInvoke<ExportProfileArchiveResult[]>('export_profile_archives', { profileIds, includeUserData })
+  tauriInvoke<ExportProfileArchiveResult[]>('export_profile_archives', {
+    profileIds: Array.from(profileIds),
+    includeUserData,
+  })
 
 export const importProfileArchives = () => tauriInvoke<ImportProfileArchiveResult[]>('import_profile_archives')
