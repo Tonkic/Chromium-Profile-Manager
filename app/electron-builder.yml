@@ -1,0 +1,33 @@
+appId: com.tonkic.chromiumprofilemanager
+productName: Chromium Profile Manager
+directories:
+  output: release
+files:
+  - dist/**
+  - dist-electron/**
+  - package.json
+extraResources:
+  - from: ../data
+    to: data
+    filter:
+      - '**/*'
+  - from: ../scripts
+    to: scripts
+    filter:
+      - '**/*'
+win:
+  icon: build/icons/icon.ico
+  signAndEditExecutable: false
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: msi
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true

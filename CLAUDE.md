@@ -17,7 +17,7 @@ Platform-specific packaging and full build orchestration live in separate reposi
 This checkout contains two largely independent layers:
 
 1. **Shared ungoogled-chromium transformation layer** (repo root): config + patches + Python tooling used by platform build repos.
-2. **Local profile manager app** (`app/`): a Tauri + Vue desktop app for managing and launching local Chromium profile configurations.
+2. **Local profile manager app** (`app/`): an Electron + Vue + TypeScript desktop app for managing and launching local Chromium profile configurations.
 
 Do not conflate app-layer changes with the shared transformation pipeline; platform build expectations still come from the root-layer artifacts.
 
@@ -52,23 +52,23 @@ Read `docs/design.md` and `docs/building.md` before changing this flow.
 - `devutils/`: maintainer tooling for validation, list generation, linting, and tests.
 - `utils/_common.py`: shared constants/CLI helpers (including version and patch series parsing).
 
-### App architecture (Tauri + Vue profile manager)
+### App architecture (Electron + Vue profile manager)
 
 Frontend (`app/src`):
 
 - Single-shell Vue app: `AppShell` → `ProfilesPage` → profile settings modal/panels.
 - Pinia stores in `app/src/stores/` own UI state and call service wrappers in `app/src/services/`.
-- Services call Tauri commands via `tauriInvoke()`; command names must match Rust `#[tauri::command]` handlers.
+- Services call the Electron preload bridge through the compatibility `tauriInvoke()` facade.
 - `profiles` store auto-creates a default profile on first run if none exist.
 
-Backend (`app/src-tauri/src`):
+Backend (`app/electron`):
 
-- `lib.rs` wires Tauri command handlers and shared `Mutex`-guarded state/store instances.
-- `commands/` exposes app operations (profiles, launcher/runtime, logs, extensions, bookmarks).
-- `storage/` persists JSON/JSONL files under `data/`.
-- `state/runtime_state.rs` tracks in-memory runtime transitions (`idle/starting/running/stopped/error`).
-- `utils/command_builder.rs` builds Chromium launch args from profile config.
-- `utils/paths.rs` resolves relative paths against the project root before launch.
+- `main.ts` wires Electron window lifecycle, IPC handlers, and app data directory setup.
+- `preload.ts` exposes a minimal `window.electronAPI` bridge with command invocation and window controls.
+- `ipc/handlers.ts` allowlists app commands and routes them to TypeScript services.
+- `services/` exposes app operations (profiles, launcher/runtime, logs, extensions, bookmarks, automation).
+- `services/runtime.ts` tracks in-memory runtime transitions (`idle/starting/running/stopped/error`).
+- `services/paths.ts` resolves relative paths against the project root before launch.
 
 On-disk app data layout:
 
@@ -80,23 +80,23 @@ On-disk app data layout:
 
 Important runtime behavior:
 
-- Launch path resolution and command preview/logging happen in `app/src-tauri/src/commands/launcher.rs`.
+- Launch path resolution and command preview/logging happen in `app/electron/services/runtime.ts`.
 - `stop_profile` currently marks runtime state as stopped and writes a log entry; it does **not** kill an OS process.
 
 ### Cross-layer contracts in the app
 
-- Keep TypeScript and Rust profile/runtime schemas aligned (`app/src/types/*.ts` ↔ `app/src-tauri/src/domain/*.rs`, via `serde(rename_all = "camelCase")`).
-- Tauri command names are part of the API contract (`app/src/services/*.ts` ↔ Rust command modules).
+- Keep renderer TypeScript types aligned with Electron service return shapes (`app/src/types/*.ts` ↔ `app/electron/services/types.ts`).
+- Command names are part of the API contract (`app/src/services/*.ts` ↔ `app/electron/ipc/handlers.ts`).
 
 ### Scoped use of `vue-expert` skill (app/src only)
 
 Use `vue-expert` as a frontend-only guide with these six rules:
 
 1. Apply `vue-expert` guidance only to `app/src/**` files.
-2. Do not use `vue-expert` to change `app/src-tauri/**`, root-layer Python tooling (`utils/`, `devutils/`), or patch/config artifacts (`patches/`, `flags.gn`, `downloads.ini`, `domain_*.list`, `pruning.list`).
+2. Do not use `vue-expert` to change `app/electron/**`, root-layer Python tooling (`utils/`, `devutils/`), or patch/config artifacts (`patches/`, `flags.gn`, `downloads.ini`, `domain_*.list`, `pruning.list`).
 3. Keep the existing app stack and patterns: Vue 3 + TypeScript + Vite + Pinia, with `<script setup>` in Vue SFCs.
 4. Do not introduce Nuxt/SSR, Quasar/Capacitor, or PWA/service-worker architecture unless explicitly requested.
-5. Preserve frontend↔Tauri API contracts when editing `app/src`: command names and payload shapes in `app/src/services/*.ts` must continue matching Rust `#[tauri::command]` handlers.
+5. Preserve frontend↔Electron IPC contracts when editing `app/src`: command names and payload shapes in `app/src/services/*.ts` must continue matching `app/electron/ipc/handlers.ts`.
 6. For `app/src`-only changes, validate with app-layer commands (`cd app && npm run build`, `cd app && npm test -- --run`) and avoid unrelated root-layer validation unless those layers are also changed.
 
 ### Patch maintenance model
@@ -167,7 +167,7 @@ python3 -m pytest -c utils/pytest.ini utils/tests/test_patches.py -k test_name
 python3 -m pytest -c devutils/pytest.ini devutils/tests/test_validate_patches.py -k test_name
 ```
 
-### App layer (Vue + Tauri)
+### App layer (Vue + Electron)
 
 Command context (important):
 
@@ -204,37 +204,29 @@ Run frontend tests in watch mode:
 cd app && npm run test:watch
 ```
 
-Build frontend:
+Build app:
 
 ```sh
 cd app && npm run build
 ```
 
-Run Rust/Tauri tests:
+Build Electron installers:
 
 ```sh
-cargo test --manifest-path app/src-tauri/Cargo.toml
+cd app && npm run build:electron
 ```
 
-Run a single Rust test:
+Run Electron app in development:
 
 ```sh
-cargo test --manifest-path app/src-tauri/Cargo.toml test_name
-```
-
-Run Tauri app in development:
-
-```sh
-cd app && npm run dev:tauri
+cd app && npm run dev:electron
 ```
 
 Equivalent from repo root:
 
 ```sh
-npm --prefix app run dev:tauri
+npm --prefix app run dev:electron
 ```
-
-If you run `cargo run --manifest-path app/src-tauri/Cargo.toml` directly in debug mode, Tauri still expects the Vite dev server at `http://localhost:5173` (`tauri.conf.json`), so use `npm run dev:tauri` for normal app development.
 
 ### Validate root-layer configuration and patches
 

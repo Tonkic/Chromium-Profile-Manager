@@ -8,7 +8,7 @@
    - 用于把上游 Chromium 转换为 ungoogled-chromium 的补丁/配置/工具链工作区。
    - 包含 `patches/`、`utils/`、`devutils/`、`flags.gn`、`downloads.ini`、`domain_*.list`、`pruning.list` 等。
 2. **本地桌面应用**（`app/`）
-   - 基于 Tauri + Vue 的桌面应用，用于管理和启动本地 Chromium Profile 配置。
+   - 基于 Electron + Vue + TypeScript 的桌面应用，用于管理和启动本地 Chromium Profile 配置。
 
 > 本仓库不是完整的 Chromium 源码仓库。
 
@@ -48,7 +48,6 @@
 ### 环境要求
 
 - Node.js + npm
-- Rust + Cargo（Tauri 后端）
 - `PATH` 中可用的 Python（自动化脚本通过 `python` 启动）
 - 本地 Chromium runtime（新 Profile 默认指向 `./runtime/.../chrome.exe`）
 
@@ -56,13 +55,14 @@
 
 ```sh
 npm --prefix app install
-npm --prefix app run dev:tauri
+npm --prefix app run dev:electron
 ```
 
 ### 构建与测试
 
 ```sh
 npm --prefix app run build
+npm --prefix app run build:electron
 npm --prefix app test -- --run
 ```
 

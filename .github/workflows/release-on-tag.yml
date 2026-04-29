@@ -63,19 +63,16 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install frontend dependencies
+      - name: Install app dependencies
         run: npm --prefix app ci
 
-      - name: Build Tauri Windows bundles
-        run: npm --prefix app exec tauri build -- --bundles nsis,msi
+      - name: Build Electron Windows bundles
+        run: npm --prefix app run build:electron
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.prepare_release.outputs.tag }}
           files: |
-            app/src-tauri/target/release/bundle/nsis/*.exe
-            app/src-tauri/target/release/bundle/msi/*.msi
+            app/release/*.exe
+            app/release/*.msi

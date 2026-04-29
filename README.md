@@ -8,7 +8,7 @@ This repository contains two related layers:
    - Patch/config/tooling workspace used to transform upstream Chromium into ungoogled-chromium.
    - Includes `patches/`, `utils/`, `devutils/`, `flags.gn`, `downloads.ini`, `domain_*.list`, and `pruning.list`.
 2. **Local desktop app** (`app/`)
-   - A Tauri + Vue desktop application for managing and launching local Chromium profile configurations.
+   - An Electron + Vue + TypeScript desktop application for managing and launching local Chromium profile configurations.
 
 > This repo is not the full Chromium source tree.
 
@@ -27,7 +27,7 @@ This project is built on top of and inspired by [ungoogled-chromium](https://git
 - Extension management (import unpacked dir or CRX, then enable per profile)
 - Bookmarks and quick links storage per profile
 - Software settings (font, accent color, background color)
-- Custom draggable titlebar for frameless Tauri window
+- Custom draggable titlebar for frameless Electron window
 
 ### Current runtime behavior
 
@@ -48,7 +48,6 @@ This project is built on top of and inspired by [ungoogled-chromium](https://git
 ### Requirements
 
 - Node.js + npm
-- Rust + Cargo (for Tauri backend)
 - Python in `PATH` (automation scripts are launched with `python`)
 - A local Chromium runtime (new profiles default to a runtime path under `./runtime/.../chrome.exe`)
 
@@ -56,13 +55,14 @@ This project is built on top of and inspired by [ungoogled-chromium](https://git
 
 ```sh
 npm --prefix app install
-npm --prefix app run dev:tauri
+npm --prefix app run dev:electron
 ```
 
 ### Build and test
 
 ```sh
 npm --prefix app run build
+npm --prefix app run build:electron
 npm --prefix app test -- --run
 ```
 

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { Profile } from '../types/profile'
+import type { ExportProfileArchiveResult, ImportProfileArchiveResult } from '../services/profiles'
 import * as profilesApi from '../services/profiles'
 import { makeDefaultProfile } from '../utils/defaultProfile'
 
@@ -35,6 +36,26 @@ export const useProfilesStore = defineStore('profiles', {
     async removeProfile(id: string) {
       await profilesApi.deleteProfile(id)
       await this.fetchProfiles()
+    },
+    async exportProfile(id: string) {
+      return profilesApi.exportProfileArchive(id)
+    },
+    async importProfile() {
+      const profile = await profilesApi.importProfileArchive()
+      if (profile) {
+        await this.fetchProfiles()
+      }
+      return profile
+    },
+    async exportProfiles(ids: string[], includeUserData: boolean): Promise<ExportProfileArchiveResult[]> {
+      return profilesApi.exportProfileArchives(ids, includeUserData)
+    },
+    async importProfiles(): Promise<ImportProfileArchiveResult[]> {
+      const results = await profilesApi.importProfileArchives()
+      if (results.some((item) => item.profile)) {
+        await this.fetchProfiles()
+      }
+      return results
     },
   },
 })

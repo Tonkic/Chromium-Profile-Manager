@@ -1,20 +1,18 @@
 <script setup lang="ts">
-import { getCurrentWindow } from '@tauri-apps/api/window'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
-const appWindow = getCurrentWindow()
 const isMaximized = ref(false)
-let unlistenResize: (() => void) | null = null
+let unlistenMaximized: (() => void) | null = null
 
 const titlebarLabel = computed(() => (isMaximized.value ? '还原窗口' : '最大化窗口'))
 
 const syncMaximized = async () => {
-  isMaximized.value = await appWindow.isMaximized()
+  isMaximized.value = await window.electronAPI.windowControls.isMaximized()
 }
 
 const minimize = async () => {
   try {
-    await appWindow.minimize()
+    await window.electronAPI.windowControls.minimize()
   } catch (error) {
     console.error('Failed to minimize window', error)
   }
@@ -22,13 +20,7 @@ const minimize = async () => {
 
 const toggleMaximize = async () => {
   try {
-    const maximized = await appWindow.isMaximized()
-    if (maximized) {
-      await appWindow.unmaximize()
-    } else {
-      await appWindow.maximize()
-    }
-    await syncMaximized()
+    isMaximized.value = await window.electronAPI.windowControls.toggleMaximize()
   } catch (error) {
     console.error('Failed to toggle maximize state', error)
   }
@@ -36,7 +28,7 @@ const toggleMaximize = async () => {
 
 const closeWindow = async () => {
   try {
-    await appWindow.close()
+    await window.electronAPI.windowControls.close()
   } catch (error) {
     console.error('Failed to close window', error)
   }
@@ -44,25 +36,26 @@ const closeWindow = async () => {
 
 onMounted(async () => {
   await syncMaximized()
-  unlistenResize = await appWindow.onResized(async () => {
-    await syncMaximized()
+  unlistenMaximized = window.electronAPI.windowControls.onMaximizedChange((maximized) => {
+    isMaximized.value = maximized
   })
 })
 
 onUnmounted(() => {
-  unlistenResize?.()
-  unlistenResize = null
+  unlistenMaximized?.()
+  unlistenMaximized = null
 })
 </script>
 
 <template>
-  <header class="window-titlebar" data-tauri-drag-region @dblclick="toggleMaximize">
-    <div class="window-titlebar__drag" data-tauri-drag-region>
-      <div class="window-titlebar__brand" data-tauri-drag-region>
-        <span class="window-dot" data-tauri-drag-region />
-        <strong data-tauri-drag-region>Chromium Profile Manager</strong>
+  <header class="window-titlebar" @dblclick="toggleMaximize">
+    <div class="window-titlebar__drag">
+      <div class="window-titlebar__brand">
+        <span class="window-dot" />
+        <strong>Chromium Profile Manager</strong>
       </div>
     </div>
+
     <div class="window-titlebar__actions" @mousedown.stop @dblclick.stop>
       <button class="window-control is-minimize" type="button" title="最小化窗口" @mousedown.stop @click.stop="minimize">
         <span />
