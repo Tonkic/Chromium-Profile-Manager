@@ -10,6 +10,7 @@ export interface Profile {
   name: string
   note?: string
   browserPath: string
+  browserPathOverride?: string
   userDataDir: string
   proxy?: string
   lang?: string
@@ -20,6 +21,10 @@ export interface Profile {
   bookmarkSetId?: string
   createdAt: string
   updatedAt: string
+}
+
+export interface SoftwareSettings {
+  defaultBrowserPath: string
 }
 
 export type RuntimeStatus = 'idle' | 'starting' | 'running' | 'stopped' | 'error'

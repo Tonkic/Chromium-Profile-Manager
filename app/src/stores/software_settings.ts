@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import * as softwareSettingsApi from '../services/software_settings'
 
 const STORAGE_KEY = 'software-settings-v2'
 const LEGACY_STORAGE_KEY = 'software-settings-v1'
@@ -178,12 +179,19 @@ export const FONT_OPTIONS: FontOption[] = [
   { id: 'ibm-plex', label: 'IBM Plex Sans', value: '"IBM Plex Sans", "Segoe UI", system-ui, sans-serif' },
 ]
 
+export const DEFAULT_BROWSER_PATH =
+  './runtime/fingerprint-chromium-144/ungoogled-chromium_144.0.7559.132-1.1_windows_x64/chrome.exe'
+
 const defaultThemeId = THEME_PRESETS[0]?.id ?? 'dark-slate'
 const defaultFontId = FONT_OPTIONS[0]?.id ?? 'inter'
 
 export interface SoftwareSettingsState {
   themeId: string
   fontId: string
+  defaultBrowserPath: string
+  loadingRuntimeSettings: boolean
+  savingRuntimeSettings: boolean
+  runtimeSettingsError: string
 }
 
 interface LegacySoftwareSettingsState {
@@ -195,17 +203,23 @@ interface LegacySoftwareSettingsState {
 const defaultState = (): SoftwareSettingsState => ({
   themeId: defaultThemeId,
   fontId: defaultFontId,
+  defaultBrowserPath: DEFAULT_BROWSER_PATH,
+  loadingRuntimeSettings: false,
+  savingRuntimeSettings: false,
+  runtimeSettingsError: '',
 })
 
 const getThemeById = (id: string) => THEME_PRESETS.find((item) => item.id === id) ?? THEME_PRESETS[0]
 const getFontById = (id: string) => FONT_OPTIONS.find((item) => item.id === id) ?? FONT_OPTIONS[0]
 
 const normalizeState = (value: Partial<SoftwareSettingsState>): SoftwareSettingsState => ({
+  ...defaultState(),
   themeId: getThemeById(value.themeId || defaultThemeId).id,
   fontId: getFontById(value.fontId || defaultFontId).id,
+  defaultBrowserPath: value.defaultBrowserPath?.trim() || DEFAULT_BROWSER_PATH,
 })
 
-const normalizePreviewState = (themeId: string, fontId: string): SoftwareSettingsState => ({
+const normalizePreviewState = (themeId: string, fontId: string): Pick<SoftwareSettingsState, 'themeId' | 'fontId'> => ({
   themeId: getThemeById(themeId).id,
   fontId: getFontById(fontId).id,
 })
@@ -227,7 +241,7 @@ const mapLegacyFontToId = (fontFamily?: string) => {
   return 'inter'
 }
 
-const applyCssVariables = (state: SoftwareSettingsState) => {
+const applyCssVariables = (state: Pick<SoftwareSettingsState, 'themeId' | 'fontId'>) => {
   const root = document.documentElement
   const theme = getThemeById(state.themeId)
   const font = getFontById(state.fontId)
@@ -271,15 +285,29 @@ export const useSoftwareSettingsStore = defineStore('softwareSettings', {
       const loaded = loadSettings()
       this.themeId = loaded.themeId
       this.fontId = loaded.fontId
+      this.defaultBrowserPath = loaded.defaultBrowserPath
       applyCssVariables(this)
+    },
+    async loadRuntimeSettings() {
+      this.loadingRuntimeSettings = true
+      this.runtimeSettingsError = ''
+      try {
+        const settings = await softwareSettingsApi.getSoftwareSettings()
+        this.defaultBrowserPath = settings.defaultBrowserPath
+      } catch (error) {
+        this.runtimeSettingsError = error instanceof Error ? error.message : String(error)
+      } finally {
+        this.loadingRuntimeSettings = false
+      }
     },
     preview(themeId: string, fontId: string) {
       applyCssVariables(normalizePreviewState(themeId, fontId))
     },
-    save() {
+    async save() {
       const normalized = normalizeState(this)
       this.themeId = normalized.themeId
       this.fontId = normalized.fontId
+      this.defaultBrowserPath = normalized.defaultBrowserPath
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({
@@ -287,13 +315,24 @@ export const useSoftwareSettingsStore = defineStore('softwareSettings', {
           fontId: this.fontId,
         }),
       )
+      this.savingRuntimeSettings = true
+      this.runtimeSettingsError = ''
+      try {
+        const settings = await softwareSettingsApi.saveSoftwareSettings({ defaultBrowserPath: this.defaultBrowserPath })
+        this.defaultBrowserPath = settings.defaultBrowserPath
+      } catch (error) {
+        this.runtimeSettingsError = error instanceof Error ? error.message : String(error)
+      } finally {
+        this.savingRuntimeSettings = false
+      }
       applyCssVariables(this)
     },
     reset() {
       const next = defaultState()
       this.themeId = next.themeId
       this.fontId = next.fontId
-      this.save()
+      this.defaultBrowserPath = next.defaultBrowserPath
+      void this.save()
     },
   },
 })

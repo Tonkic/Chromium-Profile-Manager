@@ -3,13 +3,52 @@ import { existsSync } from 'node:fs'
 import path from 'node:path'
 import type { Profile } from './types.js'
 import { profilesRoot } from './paths.js'
+import { DEFAULT_BROWSER_PATH } from './software_settings.js'
 
 const profilePath = (id: string) => path.join(profilesRoot(), id, 'profile.json')
 const profileDir = (id: string) => path.join(profilesRoot(), id)
+const isLegacyDefaultBrowserPath = (value?: string) =>
+  !value ||
+  value.includes('runtime/ungoogled-chromium-146') ||
+  value.includes('runtime\\ungoogled-chromium-146') ||
+  value.includes('runtime/fingerprint-chromium-144') ||
+  value.includes('runtime\\fingerprint-chromium-144')
+
+export const normalizeProfileRuntime = (profile: Profile): Profile => {
+  const browserPathOverride = profile.browserPathOverride?.trim() || undefined
+  if (browserPathOverride) {
+    return {
+      ...profile,
+      browserPath: DEFAULT_BROWSER_PATH,
+      browserPathOverride,
+    }
+  }
+  if (isLegacyDefaultBrowserPath(profile.browserPath)) {
+    return {
+      ...profile,
+      browserPath: DEFAULT_BROWSER_PATH,
+      browserPathOverride: undefined,
+    }
+  }
+  return {
+    ...profile,
+    browserPath: DEFAULT_BROWSER_PATH,
+    browserPathOverride: profile.browserPath,
+  }
+}
 
 const writeProfileToDir = async (dir: string, profile: Profile) => {
   await mkdir(dir, { recursive: true })
-  await writeFile(path.join(dir, 'profile.json'), JSON.stringify(profile, null, 2), 'utf-8')
+  await writeFile(path.join(dir, 'profile.json'), JSON.stringify(normalizeProfileRuntime(profile), null, 2), 'utf-8')
+}
+
+const readProfileFile = async (filePath: string) => {
+  const profile = JSON.parse(await readFile(filePath, 'utf-8')) as Profile
+  const normalized = normalizeProfileRuntime(profile)
+  if (JSON.stringify(profile) !== JSON.stringify(normalized)) {
+    await writeFile(filePath, JSON.stringify(normalized, null, 2), 'utf-8')
+  }
+  return normalized
 }
 
 export const listProfiles = async (): Promise<Profile[]> => {
@@ -27,13 +66,13 @@ export const listProfiles = async (): Promise<Profile[]> => {
     if (!existsSync(filePath)) {
       continue
     }
-    profiles.push(JSON.parse(await readFile(filePath, 'utf-8')) as Profile)
+    profiles.push(await readProfileFile(filePath))
   }
   return profiles.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 export const getProfile = async (id: string): Promise<Profile> => {
-  return JSON.parse(await readFile(profilePath(id), 'utf-8')) as Profile
+  return readProfileFile(profilePath(id))
 }
 
 export const createProfile = async (profile: Profile) => {

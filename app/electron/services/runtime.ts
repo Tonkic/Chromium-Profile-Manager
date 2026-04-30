@@ -5,6 +5,8 @@ import type { Profile, RuntimeState } from './types.js'
 import { extensionsRoot, resolveFromProjectRoot, toDisplayPath } from './paths.js'
 import { appendLog } from './logs.js'
 import { getProfile } from './profiles.js'
+import { getSoftwareSettings, DEFAULT_BROWSER_PATH } from './software_settings.js'
+import { clearStaleRuntimeState } from './user_data.js'
 
 const states = new Map<string, RuntimeState>()
 
@@ -13,12 +15,15 @@ const idleState = (profileId: string): RuntimeState => ({ profileId, status: 'id
 const getState = (profileId: string) => states.get(profileId) ?? idleState(profileId)
 
 const buildLaunchSpec = (profile: Profile, extensionPaths: string[]) => {
-  const args = [`--user-data-dir=${profile.userDataDir}`]
+  const args = [`--user-data-dir=${profile.userDataDir}`, '--disable-session-crashed-bubble', '--restore-last-session=false']
   if (profile.proxy) {
     args.push(`--proxy-server=${profile.proxy}`)
   }
   if (profile.lang) {
-    args.push(`--lang=${profile.lang}`)
+    args.push(`--lang=${profile.lang}`, `--accept-lang=${profile.lang}`)
+  }
+  if (profile.timezone) {
+    args.push(`--timezone=${profile.timezone}`)
   }
   if (profile.windowSize) {
     args.push(`--window-size=${profile.windowSize[0]},${profile.windowSize[1]}`)
@@ -36,11 +41,32 @@ const extensionPaths = (profile: Profile) =>
     .filter((item) => item.enabled)
     .map((item) => path.join(extensionsRoot(), item.id))
 
-const resolveProfile = (profile: Profile): Profile => ({
-  ...profile,
-  browserPath: resolveFromProjectRoot(profile.browserPath),
-  userDataDir: resolveFromProjectRoot(profile.userDataDir),
-})
+const resolveProfile = async (profile: Profile) => {
+  const settings = await getSoftwareSettings()
+  const overridePath = profile.browserPathOverride?.trim()
+  const globalPath = settings.defaultBrowserPath.trim()
+  const preferredPath = overridePath || globalPath || DEFAULT_BROWSER_PATH
+  const fallbackPath = DEFAULT_BROWSER_PATH
+  const browserPath = !overridePath && preferredPath !== fallbackPath && !existsSync(resolveFromProjectRoot(preferredPath))
+    ? fallbackPath
+    : preferredPath
+  const browserPathSource = overridePath
+    ? 'override'
+    : browserPath === fallbackPath && preferredPath !== fallbackPath
+      ? 'fallback'
+      : globalPath
+        ? 'global'
+        : 'fallback'
+
+  return {
+    profile: {
+      ...profile,
+      browserPath: resolveFromProjectRoot(browserPath),
+      userDataDir: resolveFromProjectRoot(profile.userDataDir),
+    },
+    browserPathSource,
+  }
+}
 
 export const getRuntimeState = async (profileId: string): Promise<RuntimeState> => getState(profileId)
 
@@ -67,15 +93,18 @@ export const launchProfile = async (profileId: string): Promise<RuntimeState> =>
     throw new Error('profile is already running')
   }
 
-  const resolvedProfile = resolveProfile(profile)
+  const { profile: resolvedProfile, browserPathSource } = await resolveProfile(profile)
   const browserPath = resolvedProfile.browserPath
   const userDataDir = resolvedProfile.userDataDir
   const spec = buildLaunchSpec(resolvedProfile, extensionPaths(profile))
   const commandPreview = [spec.program, ...spec.args]
   const resolvedCommandPreview = [
+    `runtime source: ${browserPathSource}`,
     `resolved browser path: ${toDisplayPath(browserPath)}`,
     `resolved user data dir: ${toDisplayPath(userDataDir)}`,
   ]
+
+  await clearStaleRuntimeState(userDataDir)
 
   if (!existsSync(browserPath)) {
     const message = `浏览器路径不存在: ${toDisplayPath(browserPath)}`

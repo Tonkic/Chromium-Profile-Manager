@@ -16,6 +16,8 @@ This repository contains two related layers:
 
 This project is built on top of and inspired by [ungoogled-chromium](https://github.com/ungoogled-software/ungoogled-chromium).
 
+Windows fingerprint runtime builds can use [fingerprint-chromium](https://github.com/adryfish/fingerprint-chromium), a fingerprint browser runtime based on ungoogled-chromium.
+
 ## Desktop app (`app/`) features
 
 - Profile list and quick operations (launch / stop / settings / automation)
@@ -34,6 +36,7 @@ This project is built on top of and inspired by [ungoogled-chromium](https://git
 - `launch_profile` starts Chromium and tracks PID.
 - If Chromium is closed externally, runtime state is updated to `stopped` automatically.
 - `stop_profile` currently updates app runtime state/logs but **does not kill the OS browser process**.
+- Fingerprint runtime features are enabled with Chromium command-line arguments such as `--fingerprint=1000`, `--fingerprint-platform=windows`, `--timezone=Asia/Shanghai`, `--lang=zh-CN`, and proxy settings.
 
 ## Data layout (`app`)
 

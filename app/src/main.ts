@@ -10,5 +10,6 @@ app.use(pinia)
 
 const softwareSettingsStore = useSoftwareSettingsStore(pinia)
 softwareSettingsStore.initialize()
+void softwareSettingsStore.loadRuntimeSettings()
 
 app.mount('#app')

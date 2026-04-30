@@ -1,5 +1,5 @@
 import { ipcMain, type IpcMainInvokeEvent } from 'electron'
-import type { BookmarkEntry, Profile, QuickLink } from '../services/types.js'
+import type { BookmarkEntry, Profile, QuickLink, SoftwareSettings } from '../services/types.js'
 import { isCommandName, type CommandName, type CommandPayload } from './contracts.js'
 import * as automation from '../services/automation.js'
 import * as bookmarks from '../services/bookmarks.js'
@@ -9,6 +9,7 @@ import * as profiles from '../services/profiles.js'
 import * as profileTransfer from '../services/profile_transfer.js'
 import * as runtime from '../services/runtime.js'
 import * as runtimeManager from '../services/runtime_manager.js'
+import * as softwareSettings from '../services/software_settings.js'
 
 const stringField = (payload: CommandPayload, key: string) => {
   const value = payload?.[key]
@@ -69,6 +70,10 @@ const handleCommand = async (command: CommandName, payload: CommandPayload) => {
       return profileTransfer.exportProfileArchives(arrayField<string>(payload, 'profileIds'), booleanField(payload, 'includeUserData'))
     case 'import_profile_archives':
       return profileTransfer.importProfileArchives()
+    case 'get_software_settings':
+      return softwareSettings.getSoftwareSettings()
+    case 'save_software_settings':
+      return softwareSettings.saveSoftwareSettings(objectField<SoftwareSettings>(payload, 'settings'))
     case 'launch_profile':
       return runtime.launchProfile(stringField(payload, 'profileId'))
     case 'stop_profile':

@@ -12,7 +12,7 @@ const activeSection = ref<AppSection>('profiles')
 const sections: Array<{ key: AppSection; eyebrow: string; label: string; description: string }> = [
   { key: 'profiles', eyebrow: 'Workspace', label: 'Profiles', description: '管理浏览器配置、启动状态与自动化脚本' },
   { key: 'profile-transfer', eyebrow: 'Workspace', label: 'Import / Export', description: '批量导入导出 Profile，并可选包含 userData' },
-  { key: 'software-settings', eyebrow: 'Preferences', label: 'Software Settings', description: '主题、字体与外观设置' },
+  { key: 'software-settings', eyebrow: 'Preferences', label: 'Software Settings', description: '主题、字体与默认 Runtime' },
 ]
 
 const currentSection = computed(() => sections.find((section) => section.key === activeSection.value) ?? sections[0])
