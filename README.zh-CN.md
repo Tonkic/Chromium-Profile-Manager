@@ -16,6 +16,8 @@
 
 本项目基于并参考了 [ungoogled-chromium](https://github.com/ungoogled-software/ungoogled-chromium)。
 
+Windows 指纹 runtime 可使用 [fingerprint-chromium](https://github.com/adryfish/fingerprint-chromium)，这是一个基于 ungoogled-chromium 的指纹浏览器 runtime。
+
 ## 桌面应用（`app/`）功能
 
 - Profile 列表与高频操作（启动 / 停止 / 设置 / 自动化）
@@ -34,6 +36,7 @@
 - `launch_profile` 启动 Chromium 并记录 PID。
 - 若 Chromium 被外部关闭，运行状态会自动更新为 `stopped`。
 - `stop_profile` 目前仅更新应用内状态与日志，**不会主动 kill 系统浏览器进程**。
+- 指纹 runtime 通过 Chromium 启动参数启用，例如 `--fingerprint=1000`、`--fingerprint-platform=windows`、`--timezone=Asia/Shanghai`、`--lang=zh-CN` 和代理设置。
 
 ## 数据目录（`app`）
 

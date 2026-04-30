@@ -8,6 +8,7 @@ export interface Profile {
   name: string
   note?: string
   browserPath: string
+  browserPathOverride?: string
   userDataDir: string
   proxy?: string
   lang?: string
@@ -24,7 +25,7 @@ export const emptyProfile = (): Profile => ({
   id: '',
   name: '',
   note: '',
-  browserPath: './runtime/ungoogled-chromium-146/ungoogled-chromium_146.0.7680.177-1.1_windows_x64/chrome.exe',
+  browserPath: './runtime/fingerprint-chromium-144/ungoogled-chromium_144.0.7559.132-1.1_windows_x64/chrome.exe',
   userDataDir: '',
   proxy: '',
   lang: 'zh-CN',

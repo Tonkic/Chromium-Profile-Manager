@@ -7,6 +7,8 @@ export const commandNames = [
   'import_profile_archive',
   'export_profile_archives',
   'import_profile_archives',
+  'get_software_settings',
+  'save_software_settings',
   'launch_profile',
   'stop_profile',
   'get_runtime_state',

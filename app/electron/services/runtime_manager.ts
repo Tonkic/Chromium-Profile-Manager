@@ -8,6 +8,15 @@ import { runtimeRoot, toDisplayPath } from './paths.js'
 
 const REPOSITORY_RELEASES_URL = 'https://api.github.com/repos/Tonkic/Chromium-Profile-Manager/releases'
 const RUNTIME_ASSET_PATTERN = /^runtime-windows-x64-.+\.zip$/i
+const FINGERPRINT_RUNTIME_ASSET: RuntimeReleaseAsset = {
+  id: 1447559132,
+  name: 'fingerprint-chromium_144.0.7559.132-1.1_windows_x64.zip',
+  size: 169 * 1024 * 1024,
+  downloadUrl: 'https://github.com/adryfish/fingerprint-chromium/releases/download/144.0.7559.132/ungoogled-chromium_144.0.7559.132-1.1_windows_x64.zip',
+  releaseName: 'fingerprint-chromium 144.0.7559.132',
+  tagName: '144.0.7559.132',
+  publishedAt: null,
+}
 
 export interface RuntimeReleaseAsset {
   id: number
@@ -107,7 +116,7 @@ export const listRuntimeReleases = async (): Promise<RuntimeReleaseAsset[]> => {
   }
 
   const releases = (await response.json()) as GitHubRelease[]
-  return releases.flatMap((release) =>
+  const assets = releases.flatMap((release) =>
     (release.assets ?? [])
       .filter((asset) => RUNTIME_ASSET_PATTERN.test(asset.name))
       .map((asset) => ({
@@ -120,6 +129,7 @@ export const listRuntimeReleases = async (): Promise<RuntimeReleaseAsset[]> => {
         publishedAt: release.published_at ?? null,
       })),
   )
+  return assets.length > 0 ? assets : [FINGERPRINT_RUNTIME_ASSET]
 }
 
 export const getRuntimeInstallState = async (): Promise<RuntimeInstallState> => state
@@ -133,7 +143,7 @@ export const installRuntimeRelease = async (asset: RuntimeReleaseAsset): Promise
   const tempDir = await mkdtemp(path.join(os.tmpdir(), 'chromium-runtime-install-'))
   try {
     await mkdir(runtimeRoot(), { recursive: true })
-    const archivePath = path.join(tempDir, asset.name)
+    const archivePath = path.join(tempDir, path.basename(asset.downloadUrl))
     await downloadAsset(asset.downloadUrl, archivePath)
 
     state.message = '正在解压 runtime'

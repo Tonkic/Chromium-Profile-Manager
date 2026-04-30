@@ -69,25 +69,23 @@ jobs:
       - name: Build Lite Electron Windows bundles
         run: npm --prefix app run build:electron:lite
 
+      - name: Download fingerprint Chromium runtime
+        shell: pwsh
+        env:
+          RUNTIME_ZIP_URL: ${{ vars.RUNTIME_ZIP_URL || 'https://github.com/adryfish/fingerprint-chromium/releases/download/144.0.7559.132/ungoogled-chromium_144.0.7559.132-1.1_windows_x64.zip' }}
+        run: |
+          New-Item -ItemType Directory -Force runtime/downloads | Out-Null
+          Invoke-WebRequest -Uri "$env:RUNTIME_ZIP_URL" -OutFile runtime/downloads/ungoogled-chromium_144.0.7559.132-1.1_windows_x64.zip
+          New-Item -ItemType Directory -Force runtime/fingerprint-chromium-144 | Out-Null
+          Expand-Archive -Path runtime/downloads/ungoogled-chromium_144.0.7559.132-1.1_windows_x64.zip -DestinationPath runtime/fingerprint-chromium-144 -Force
+
       - name: Prepare runtime release asset
         shell: pwsh
         run: |
-          if (Test-Path runtime/downloads/ungoogled-chromium_146.0.7680.177-1.1_windows_x64.zip) {
-            Copy-Item runtime/downloads/ungoogled-chromium_146.0.7680.177-1.1_windows_x64.zip app/release/runtime-windows-x64-ungoogled-chromium-146.zip -Force
-          } elseif (Test-Path runtime/ungoogled-chromium-146) {
-            Compress-Archive -Path runtime/ungoogled-chromium-146 -DestinationPath app/release/runtime-windows-x64-ungoogled-chromium-146.zip -Force
-          } else {
-            Write-Host 'Runtime asset is not available in CI workspace; skipping runtime/full artifacts.'
-          }
+          Copy-Item runtime/downloads/ungoogled-chromium_144.0.7559.132-1.1_windows_x64.zip app/release/runtime-windows-x64-fingerprint-chromium-144.zip -Force
 
       - name: Build Full Electron Windows bundles
-        shell: pwsh
-        run: |
-          if (Test-Path runtime/ungoogled-chromium-146) {
-            npm --prefix app run build:electron:full
-          } else {
-            Write-Host 'Runtime directory is not available; skipping Full installer.'
-          }
+        run: npm --prefix app run build:electron:full
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2

@@ -16,8 +16,8 @@ extraResources:
     to: scripts
     filter:
       - '**/*'
-  - from: ../runtime/ungoogled-chromium-146
-    to: runtime/ungoogled-chromium-146
+  - from: ../runtime/fingerprint-chromium-144
+    to: runtime/fingerprint-chromium-144
     filter:
       - '**/*'
 win:

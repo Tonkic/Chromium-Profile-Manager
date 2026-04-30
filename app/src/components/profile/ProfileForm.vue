@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { storeToRefs } from 'pinia'
+import { computed, reactive, ref, watch } from 'vue'
 import type { ExtensionEntry } from '../../types/extension'
 import type { Profile } from '../../types/profile'
 import { emptyProfile } from '../../types/profile'
-import { useRuntimeManagerStore } from '../../stores/runtime_manager'
 
 const props = defineProps<{
   modelValue?: Profile | null
@@ -15,41 +13,19 @@ const emit = defineEmits<{
   submit: [profile: Profile, originalId: string]
 }>()
 
-const runtimeManagerStore = useRuntimeManagerStore()
-const { releases, loading, installing, error, installState } = storeToRefs(runtimeManagerStore)
-
 const form = reactive<Profile>(emptyProfile())
 const originalId = computed(() => props.modelValue?.id ?? form.id)
-const selectedRuntimeAssetName = ref('')
-const selectedRuntimeAsset = computed(() => releases.value.find((asset) => asset.name === selectedRuntimeAssetName.value))
+const runtimeOverrideEnabled = ref(false)
 
 watch(
   () => props.modelValue,
   (value) => {
     Object.assign(form, value ?? emptyProfile())
+    form.browserPathOverride = value?.browserPathOverride
+    runtimeOverrideEnabled.value = Boolean(form.browserPathOverride)
   },
   { immediate: true },
 )
-
-watch(
-  releases,
-  (value) => {
-    if (!selectedRuntimeAssetName.value && value.length > 0) {
-      selectedRuntimeAssetName.value = value[0].name
-    }
-  },
-  { immediate: true },
-)
-
-onMounted(() => {
-  if (!window.electronAPI) {
-    return
-  }
-  if (runtimeManagerStore.releases.length === 0) {
-    void runtimeManagerStore.refreshReleases()
-  }
-  void runtimeManagerStore.refreshInstallState()
-})
 
 const extraArgsText = computed({
   get: () => form.extraArgs.join('\n'),
@@ -60,25 +36,6 @@ const extraArgsText = computed({
       .filter(Boolean)
   },
 })
-
-const formatBytes = (value: number) => {
-  if (value < 1024 * 1024) {
-    return `${Math.round(value / 1024)} KB`
-  }
-  return `${Math.round(value / 1024 / 1024)} MB`
-}
-
-const refreshRuntimeReleases = () => runtimeManagerStore.refreshReleases()
-
-const installSelectedRuntime = async () => {
-  if (!selectedRuntimeAsset.value) {
-    return
-  }
-  const result = await runtimeManagerStore.install(selectedRuntimeAsset.value)
-  if (result) {
-    form.browserPath = result.browserPath
-  }
-}
 
 const toggleExtension = (id: string, enabled: boolean) => {
   const existing = form.extensions.find((item) => item.id === id)
@@ -94,16 +51,14 @@ const toggleExtension = (id: string, enabled: boolean) => {
 }
 
 const submit = () => {
-  emit(
-    'submit',
-    {
-      ...form,
-      windowSize: form.windowSize ?? [1400, 900],
-      createdAt: form.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    originalId.value,
-  )
+  const profile = {
+    ...form,
+    browserPathOverride: runtimeOverrideEnabled.value ? form.browserPathOverride?.trim() : undefined,
+    windowSize: form.windowSize ?? [1400, 900],
+    createdAt: form.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+  emit('submit', profile, originalId.value)
 }
 </script>
 
@@ -120,27 +75,15 @@ const submit = () => {
         <small class="muted">ID 用作目录名（data/profiles/&lt;id&gt;）并关联日志（data/logs/&lt;id&gt;.log）。</small>
       </label>
       <label class="runtime-manager-field">
-        Browser Path
-        <input v-model="form.browserPath" required />
-        <small class="muted">需要 chrome.exe 所在的完整 runtime，不是 source code。Lite 版本可从 Release 下载，Full 版本会内置。</small>
-        <div class="runtime-manager-card">
-          <div class="runtime-manager-actions">
-            <button class="secondary-button" type="button" :disabled="loading" @click="refreshRuntimeReleases">
-              {{ loading ? '读取中...' : '读取 Release Runtime' }}
-            </button>
-            <select v-model="selectedRuntimeAssetName" :disabled="loading || installing || releases.length === 0">
-              <option v-if="releases.length === 0" value="">暂无 runtime 资产</option>
-              <option v-for="asset in releases" :key="asset.id" :value="asset.name">
-                {{ asset.name }} · {{ formatBytes(asset.size) }}
-              </option>
-            </select>
-            <button type="button" :disabled="!selectedRuntimeAsset || installing" @click="installSelectedRuntime">
-              {{ installing ? '安装中...' : '下载并使用' }}
-            </button>
-          </div>
-          <small v-if="installState.message" class="muted">{{ installState.message }}</small>
-          <small v-if="error" class="error-text">{{ error }}</small>
-        </div>
+        Runtime
+        <label class="extension-checkbox-row runtime-override-toggle">
+          <input v-model="runtimeOverrideEnabled" type="checkbox" />
+          <span>为这个 Profile 单独覆盖默认 runtime</span>
+        </label>
+        <input v-if="runtimeOverrideEnabled" v-model="form.browserPathOverride" placeholder="./runtime/.../chrome.exe" required />
+        <small class="muted">
+          默认使用“软件设置”里的全局 runtime；只有少数 Profile 需要不同 runtime 时才启用覆盖。
+        </small>
       </label>
       <label>
         User Data Dir
@@ -165,6 +108,7 @@ const submit = () => {
       <label>
         启动参数
         <textarea v-model="extraArgsText" rows="4" />
+        <small class="muted">fingerprint-chromium 可用参数示例：--fingerprint=1000、--fingerprint-platform=windows、--disable-spoofing=font,gpu。</small>
       </label>
       <fieldset class="extensions-fieldset">
         <legend>扩展</legend>

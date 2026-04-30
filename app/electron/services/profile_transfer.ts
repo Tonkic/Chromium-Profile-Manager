@@ -6,7 +6,8 @@ import os from 'node:os'
 import path from 'node:path'
 import type { Profile } from './types.js'
 import { logsRoot, profilesRoot } from './paths.js'
-import { createProfile, getProfile, listProfiles } from './profiles.js'
+import { createProfile, getProfile, listProfiles, normalizeProfileRuntime } from './profiles.js'
+import { clearImportedRuntimeState } from './user_data.js'
 
 interface ProfileArchiveManifest {
   version: 1
@@ -142,16 +143,17 @@ const importArchiveAtPath = async (archivePath: string): Promise<ImportProfileAr
       throw new Error('profile.json not found in archive')
     }
 
-    const profile = JSON.parse(await readFile(profileJsonPath, 'utf-8')) as Profile
+    const profile = normalizeProfileRuntime(JSON.parse(await readFile(profileJsonPath, 'utf-8')) as Profile)
     const importedId = await uniqueProfileId(safeProfileId(profile.id || 'imported-profile'))
-    const importedProfile: Profile = {
+
+    const importedProfile: Profile = normalizeProfileRuntime({
       ...profile,
       id: importedId,
       name: importedId === profile.id ? profile.name : `${profile.name} (导入)`,
       userDataDir: `./data/profiles/${importedId}/user-data`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    }
+    })
 
     const targetProfileDir = path.join(profilesRoot(), importedId)
     await mkdir(targetProfileDir, { recursive: true })
@@ -171,6 +173,7 @@ const importArchiveAtPath = async (archivePath: string): Promise<ImportProfileAr
         const targetUserDataPath = path.join(targetProfileDir, 'user-data')
         await rm(targetUserDataPath, { recursive: true, force: true })
         await cp(sourceUserDataPath, targetUserDataPath, { recursive: true })
+        await clearImportedRuntimeState(targetUserDataPath)
         restoredUserData = true
       }
     }
