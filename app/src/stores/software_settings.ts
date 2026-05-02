@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import * as softwareSettingsApi from '../services/software_settings'
+import type { RuntimeKind } from '../utils/runtimeCapabilities'
+import { inferRuntimeKindFromPath } from '../utils/runtimeCapabilities'
 
 const STORAGE_KEY = 'software-settings-v2'
 const LEGACY_STORAGE_KEY = 'software-settings-v1'
@@ -189,6 +191,10 @@ export interface SoftwareSettingsState {
   themeId: string
   fontId: string
   defaultBrowserPath: string
+  defaultRuntimeKind: RuntimeKind
+  defaultRuntimeRepo: string
+  defaultRuntimeTagName: string
+  defaultRuntimeAssetName: string
   loadingRuntimeSettings: boolean
   savingRuntimeSettings: boolean
   runtimeSettingsError: string
@@ -204,6 +210,10 @@ const defaultState = (): SoftwareSettingsState => ({
   themeId: defaultThemeId,
   fontId: defaultFontId,
   defaultBrowserPath: DEFAULT_BROWSER_PATH,
+  defaultRuntimeKind: 'fingerprint',
+  defaultRuntimeRepo: '',
+  defaultRuntimeTagName: '',
+  defaultRuntimeAssetName: '',
   loadingRuntimeSettings: false,
   savingRuntimeSettings: false,
   runtimeSettingsError: '',
@@ -212,12 +222,26 @@ const defaultState = (): SoftwareSettingsState => ({
 const getThemeById = (id: string) => THEME_PRESETS.find((item) => item.id === id) ?? THEME_PRESETS[0]
 const getFontById = (id: string) => FONT_OPTIONS.find((item) => item.id === id) ?? FONT_OPTIONS[0]
 
-const normalizeState = (value: Partial<SoftwareSettingsState>): SoftwareSettingsState => ({
-  ...defaultState(),
-  themeId: getThemeById(value.themeId || defaultThemeId).id,
-  fontId: getFontById(value.fontId || defaultFontId).id,
-  defaultBrowserPath: value.defaultBrowserPath?.trim() || DEFAULT_BROWSER_PATH,
-})
+const normalizeRuntimeKind = (value: unknown, browserPath: string): RuntimeKind => {
+  if (value === 'fingerprint' || value === 'normal' || value === 'unknown') {
+    return value
+  }
+  return inferRuntimeKindFromPath(browserPath)
+}
+
+const normalizeState = (value: Partial<SoftwareSettingsState>): SoftwareSettingsState => {
+  const defaultBrowserPath = value.defaultBrowserPath?.trim() || DEFAULT_BROWSER_PATH
+  return {
+    ...defaultState(),
+    themeId: getThemeById(value.themeId || defaultThemeId).id,
+    fontId: getFontById(value.fontId || defaultFontId).id,
+    defaultBrowserPath,
+    defaultRuntimeKind: normalizeRuntimeKind(value.defaultRuntimeKind, defaultBrowserPath),
+    defaultRuntimeRepo: value.defaultRuntimeRepo?.trim() || '',
+    defaultRuntimeTagName: value.defaultRuntimeTagName?.trim() || '',
+    defaultRuntimeAssetName: value.defaultRuntimeAssetName?.trim() || '',
+  }
+}
 
 const normalizePreviewState = (themeId: string, fontId: string): Pick<SoftwareSettingsState, 'themeId' | 'fontId'> => ({
   themeId: getThemeById(themeId).id,
@@ -286,6 +310,10 @@ export const useSoftwareSettingsStore = defineStore('softwareSettings', {
       this.themeId = loaded.themeId
       this.fontId = loaded.fontId
       this.defaultBrowserPath = loaded.defaultBrowserPath
+      this.defaultRuntimeKind = loaded.defaultRuntimeKind
+      this.defaultRuntimeRepo = loaded.defaultRuntimeRepo
+      this.defaultRuntimeTagName = loaded.defaultRuntimeTagName
+      this.defaultRuntimeAssetName = loaded.defaultRuntimeAssetName
       applyCssVariables(this)
     },
     async loadRuntimeSettings() {
@@ -294,6 +322,10 @@ export const useSoftwareSettingsStore = defineStore('softwareSettings', {
       try {
         const settings = await softwareSettingsApi.getSoftwareSettings()
         this.defaultBrowserPath = settings.defaultBrowserPath
+        this.defaultRuntimeKind = settings.defaultRuntimeKind ?? inferRuntimeKindFromPath(settings.defaultBrowserPath)
+        this.defaultRuntimeRepo = settings.defaultRuntimeRepo ?? ''
+        this.defaultRuntimeTagName = settings.defaultRuntimeTagName ?? ''
+        this.defaultRuntimeAssetName = settings.defaultRuntimeAssetName ?? ''
       } catch (error) {
         this.runtimeSettingsError = error instanceof Error ? error.message : String(error)
       } finally {
@@ -308,6 +340,10 @@ export const useSoftwareSettingsStore = defineStore('softwareSettings', {
       this.themeId = normalized.themeId
       this.fontId = normalized.fontId
       this.defaultBrowserPath = normalized.defaultBrowserPath
+      this.defaultRuntimeKind = normalized.defaultRuntimeKind
+      this.defaultRuntimeRepo = normalized.defaultRuntimeRepo
+      this.defaultRuntimeTagName = normalized.defaultRuntimeTagName
+      this.defaultRuntimeAssetName = normalized.defaultRuntimeAssetName
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({
@@ -318,8 +354,18 @@ export const useSoftwareSettingsStore = defineStore('softwareSettings', {
       this.savingRuntimeSettings = true
       this.runtimeSettingsError = ''
       try {
-        const settings = await softwareSettingsApi.saveSoftwareSettings({ defaultBrowserPath: this.defaultBrowserPath })
+        const settings = await softwareSettingsApi.saveSoftwareSettings({
+          defaultBrowserPath: this.defaultBrowserPath,
+          defaultRuntimeKind: this.defaultRuntimeKind,
+          defaultRuntimeRepo: this.defaultRuntimeRepo || undefined,
+          defaultRuntimeTagName: this.defaultRuntimeTagName || undefined,
+          defaultRuntimeAssetName: this.defaultRuntimeAssetName || undefined,
+        })
         this.defaultBrowserPath = settings.defaultBrowserPath
+        this.defaultRuntimeKind = settings.defaultRuntimeKind ?? inferRuntimeKindFromPath(settings.defaultBrowserPath)
+        this.defaultRuntimeRepo = settings.defaultRuntimeRepo ?? ''
+        this.defaultRuntimeTagName = settings.defaultRuntimeTagName ?? ''
+        this.defaultRuntimeAssetName = settings.defaultRuntimeAssetName ?? ''
       } catch (error) {
         this.runtimeSettingsError = error instanceof Error ? error.message : String(error)
       } finally {
@@ -332,6 +378,10 @@ export const useSoftwareSettingsStore = defineStore('softwareSettings', {
       this.themeId = next.themeId
       this.fontId = next.fontId
       this.defaultBrowserPath = next.defaultBrowserPath
+      this.defaultRuntimeKind = next.defaultRuntimeKind
+      this.defaultRuntimeRepo = next.defaultRuntimeRepo
+      this.defaultRuntimeTagName = next.defaultRuntimeTagName
+      this.defaultRuntimeAssetName = next.defaultRuntimeAssetName
       void this.save()
     },
   },

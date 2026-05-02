@@ -5,6 +5,29 @@ export interface ProfileExtensionRef {
   enabled: boolean
 }
 
+export type FingerprintSource = 'none' | 'text' | 'url' | 'json'
+export type DisableSpoofingTarget = 'font' | 'audio' | 'canvas' | 'clientrects' | 'gpu'
+
+export interface FingerprintLaunchSettings {
+  seed?: string
+  platform?: '' | 'windows' | 'linux' | 'macos'
+  platformVersion?: string
+  brand?: string
+  brandVersion?: string
+  hardwareConcurrency?: string
+  disableNonProxiedUdp?: boolean
+  disableSpoofing?: DisableSpoofingTarget[]
+}
+
+export interface FingerprintSettings {
+  enabled?: boolean
+  source?: FingerprintSource
+  userAgentUrl?: string
+  userAgentText?: string
+  jsonText?: string
+  launch?: FingerprintLaunchSettings
+}
+
 export interface Profile {
   id: string
   name: string
@@ -18,13 +41,20 @@ export interface Profile {
   windowSize?: [number, number]
   extensions: ProfileExtensionRef[]
   extraArgs: string[]
+  fingerprint?: FingerprintSettings
   bookmarkSetId?: string
   createdAt: string
   updatedAt: string
 }
 
+export type RuntimeKind = 'fingerprint' | 'normal' | 'unknown'
+
 export interface SoftwareSettings {
   defaultBrowserPath: string
+  defaultRuntimeKind?: RuntimeKind
+  defaultRuntimeRepo?: string
+  defaultRuntimeTagName?: string
+  defaultRuntimeAssetName?: string
 }
 
 export type RuntimeStatus = 'idle' | 'starting' | 'running' | 'stopped' | 'error'

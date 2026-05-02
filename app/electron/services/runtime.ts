@@ -1,12 +1,14 @@
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import type { Profile, RuntimeState } from './types.js'
+import type { Profile, RuntimeKind, RuntimeState } from './types.js'
 import { extensionsRoot, resolveFromProjectRoot, toDisplayPath } from './paths.js'
 import { appendLog } from './logs.js'
 import { getProfile } from './profiles.js'
 import { getSoftwareSettings, DEFAULT_BROWSER_PATH } from './software_settings.js'
 import { clearStaleRuntimeState } from './user_data.js'
+import { resolveFingerprintArgs, resolveStructuredFingerprintArgs } from './fingerprint.js'
+import { inferRuntimeKindFromPath, supportsFingerprintSettings } from './runtime_capabilities.js'
 
 const states = new Map<string, RuntimeState>()
 
@@ -14,7 +16,7 @@ const idleState = (profileId: string): RuntimeState => ({ profileId, status: 'id
 
 const getState = (profileId: string) => states.get(profileId) ?? idleState(profileId)
 
-const buildLaunchSpec = (profile: Profile, extensionPaths: string[]) => {
+const buildLaunchSpec = async (profile: Profile, extensionPaths: string[], runtimeKind: RuntimeKind) => {
   const args = [`--user-data-dir=${profile.userDataDir}`, '--disable-session-crashed-bubble', '--restore-last-session=false']
   if (profile.proxy) {
     args.push(`--proxy-server=${profile.proxy}`)
@@ -32,7 +34,11 @@ const buildLaunchSpec = (profile: Profile, extensionPaths: string[]) => {
   if (enabledExtensions.length > 0) {
     args.push(`--load-extension=${enabledExtensions.join(',')}`)
   }
-  args.push(...profile.extraArgs)
+  if (supportsFingerprintSettings(runtimeKind)) {
+    args.push(...await resolveFingerprintArgs(profile))
+    args.push(...resolveStructuredFingerprintArgs(profile))
+    args.push(...profile.extraArgs)
+  }
   return { program: profile.browserPath, args }
 }
 
@@ -50,6 +56,11 @@ const resolveProfile = async (profile: Profile) => {
   const browserPath = !overridePath && preferredPath !== fallbackPath && !existsSync(resolveFromProjectRoot(preferredPath))
     ? fallbackPath
     : preferredPath
+  const runtimeKind = overridePath
+    ? inferRuntimeKindFromPath(overridePath)
+    : browserPath === fallbackPath && preferredPath !== fallbackPath
+      ? inferRuntimeKindFromPath(fallbackPath)
+      : settings.defaultRuntimeKind ?? inferRuntimeKindFromPath(browserPath)
   const browserPathSource = overridePath
     ? 'override'
     : browserPath === fallbackPath && preferredPath !== fallbackPath
@@ -65,6 +76,7 @@ const resolveProfile = async (profile: Profile) => {
       userDataDir: resolveFromProjectRoot(profile.userDataDir),
     },
     browserPathSource,
+    runtimeKind,
   }
 }
 
@@ -93,13 +105,14 @@ export const launchProfile = async (profileId: string): Promise<RuntimeState> =>
     throw new Error('profile is already running')
   }
 
-  const { profile: resolvedProfile, browserPathSource } = await resolveProfile(profile)
+  const { profile: resolvedProfile, browserPathSource, runtimeKind } = await resolveProfile(profile)
   const browserPath = resolvedProfile.browserPath
   const userDataDir = resolvedProfile.userDataDir
-  const spec = buildLaunchSpec(resolvedProfile, extensionPaths(profile))
+  const spec = await buildLaunchSpec(resolvedProfile, extensionPaths(profile), runtimeKind)
   const commandPreview = [spec.program, ...spec.args]
   const resolvedCommandPreview = [
     `runtime source: ${browserPathSource}`,
+    `runtime kind: ${runtimeKind}`,
     `resolved browser path: ${toDisplayPath(browserPath)}`,
     `resolved user data dir: ${toDisplayPath(userDataDir)}`,
   ]

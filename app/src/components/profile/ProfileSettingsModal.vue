@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import ProfileForm from './ProfileForm.vue'
 import ProfileLogsPanel from './ProfileLogsPanel.vue'
 import ProfileBookmarksPanel from './ProfileBookmarksPanel.vue'
@@ -21,11 +21,12 @@ const props = defineProps<{
   bookmarks?: BookmarkEntry[]
   quickLinks?: QuickLink[]
   extensions?: ExtensionEntry[]
+  fingerprintSettingsEnabled?: boolean
 }>()
 
 const emit = defineEmits<{
   close: []
-  save: [profile: Profile, originalId: string]
+  save: [profile: Profile, originalId: string, closeAfterSave?: boolean]
   'update:section': [section: SettingsSection]
   saveBookmarks: [entries: BookmarkEntry[]]
   saveQuickLinks: [entries: QuickLink[]]
@@ -34,6 +35,24 @@ const emit = defineEmits<{
   launch: [id: string]
   stop: [id: string]
 }>()
+
+const profileFormRef = ref<InstanceType<typeof ProfileForm> | null>(null)
+const formDirty = ref(false)
+const closeAfterNextSave = ref(false)
+
+watch(
+  () => [props.section, props.fingerprintSettingsEnabled] as const,
+  ([section, fingerprintSettingsEnabled]) => {
+    if (section === 'fingerprint' && !fingerprintSettingsEnabled) {
+      emit('update:section', 'general')
+    }
+  },
+  { immediate: true },
+)
+
+const effectiveFormSection = computed(() =>
+  props.section === 'fingerprint' && props.fingerprintSettingsEnabled ? 'fingerprint' : 'general',
+)
 
 const isRunning = computed(() => {
   const status = props.runtime?.status
@@ -51,14 +70,33 @@ const toggleLaunch = () => {
   }
 }
 
+const requestClose = () => {
+  if (!formDirty.value) {
+    emit('close')
+    return
+  }
+  const confirmed = window.confirm('当前 Profile 设置有未保存更改。是否保存后退出？')
+  if (!confirmed) {
+    return
+  }
+  closeAfterNextSave.value = true
+  profileFormRef.value?.submit()
+}
+
+const handleFormSubmit = (profileValue: Profile, originalId: string) => {
+  const shouldClose = closeAfterNextSave.value
+  closeAfterNextSave.value = false
+  emit('save', profileValue, originalId, shouldClose)
+}
+
 const handleImportDir = (id: string, sourcePath: string) => emit('importDir', id, sourcePath)
 const handleImportCrx = (id: string, sourcePath: string) => emit('importCrx', id, sourcePath)
 </script>
 
 <template>
-  <div v-if="open && profile" class="settings-modal-backdrop" @click.self="emit('close')">
+  <div v-if="open && profile" class="settings-modal-backdrop" @click.self="requestClose">
     <section class="settings-modal" role="dialog" aria-modal="true" aria-label="Profile 设置">
-      <button class="settings-modal-close" type="button" title="关闭设置" aria-label="关闭设置" @click="emit('close')">
+      <button class="settings-modal-close" type="button" title="关闭设置" aria-label="关闭设置" @click="requestClose">
         <span class="window-control-close" />
       </button>
       <div class="settings-modal-body full-height-body">
@@ -70,24 +108,29 @@ const handleImportCrx = (id: string, sourcePath: string) => emit('importCrx', id
               <p class="muted text-rect">{{ profile.id }}</p>
             </div>
           </div>
-          <ProfileSettingsNav :model-value="section" @update:model-value="emit('update:section', $event)" />
+          <ProfileSettingsNav :model-value="section" :fingerprint-enabled="fingerprintSettingsEnabled" @update:model-value="emit('update:section', $event)" />
         </aside>
 
         <div class="settings-modal-content right-detail-pane">
-          <section v-if="section === 'general'" class="settings-panel">
+          <section v-show="section === 'general' || (section === 'fingerprint' && fingerprintSettingsEnabled)" class="settings-panel">
             <div class="card-header">
               <div>
-                <h3 title="管理 profile 基础资料">常规</h3>
+                <h3 :title="effectiveFormSection === 'fingerprint' ? '管理指纹与 User-Agent 设置' : '管理 profile 基础资料'">
+                  {{ effectiveFormSection === 'fingerprint' ? '指纹设置' : '常规' }}
+                </h3>
               </div>
             </div>
             <ProfileForm
+              ref="profileFormRef"
               :model-value="profile"
               :available-extensions="extensions ?? []"
-              @submit="(profileValue, originalId) => emit('save', profileValue, originalId)"
+              :section="effectiveFormSection"
+              @dirty-change="formDirty = $event"
+              @submit="handleFormSubmit"
             />
           </section>
 
-          <section v-else-if="section === 'launch'" class="settings-panel">
+          <section v-if="section === 'launch'" class="settings-panel">
             <div class="card-header">
               <div>
                 <h3 title="查看启动路径、最后命令和运行状态">启动</h3>
@@ -132,7 +175,7 @@ const handleImportCrx = (id: string, sourcePath: string) => emit('importCrx', id
             </div>
           </section>
 
-          <section v-else-if="section === 'extensions'" class="settings-panel">
+          <section v-if="section === 'extensions'" class="settings-panel">
             <ProfileExtensionsSettings
               :items="extensions ?? []"
               @import-dir="handleImportDir"
@@ -140,7 +183,7 @@ const handleImportCrx = (id: string, sourcePath: string) => emit('importCrx', id
             />
           </section>
 
-          <section v-else-if="section === 'bookmarks'" class="settings-panel">
+          <section v-if="section === 'bookmarks'" class="settings-panel">
             <ProfileBookmarksPanel
               :profile-id="profile.id"
               :bookmarks="bookmarks"
@@ -150,7 +193,7 @@ const handleImportCrx = (id: string, sourcePath: string) => emit('importCrx', id
             />
           </section>
 
-          <section v-else class="settings-panel">
+          <section v-if="section === 'logs'" class="settings-panel">
             <ProfileLogsPanel :entries="logs" />
           </section>
         </div>

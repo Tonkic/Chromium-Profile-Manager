@@ -725,6 +725,26 @@ body::-webkit-scrollbar,
   box-shadow: none;
 }
 
+.inline-action-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+}
+
+.profile-save-toast {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 90;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(134, 239, 172, 0.35);
+  background: rgba(22, 101, 52, 0.85);
+  box-shadow: 0 16px 40px rgba(2, 6, 23, 0.35);
+  font-size: 13px;
+}
+
 .danger {
   background: linear-gradient(135deg, #991b1b, #dc2626);
   box-shadow: 0 10px 24px rgba(220, 38, 38, 0.22);
@@ -942,6 +962,10 @@ body::-webkit-scrollbar,
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.compact-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .runtime-grid {
   grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
 }
@@ -960,6 +984,62 @@ fieldset {
   gap: 7px;
   margin: 0;
   color: var(--text-body);
+}
+
+.field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+}
+
+.help-tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: help;
+  user-select: none;
+}
+
+.help-tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  z-index: 120;
+  width: max-content;
+  max-width: min(280px, calc(100vw - 48px));
+  transform: translateY(4px);
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-elevated);
+  color: var(--text-body);
+  box-shadow: var(--shadow-elevated);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-transform: none;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.help-tooltip:hover::after,
+.help-tooltip:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 fieldset {
@@ -1389,6 +1469,52 @@ textarea,
 .settings-modal-close:hover:not(:disabled) {
   background: rgba(239, 68, 68, 0.2);
   box-shadow: none;
+}
+
+.runtime-install-modal-backdrop {
+  z-index: 80;
+}
+
+.runtime-install-modal {
+  width: min(440px, calc(100cqw - 32px));
+  height: auto;
+  min-height: 0;
+}
+
+.runtime-install-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px;
+}
+
+.runtime-install-progress {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  background: rgba(2, 6, 23, 0.36);
+}
+
+.runtime-install-progress-bar {
+  height: 100%;
+  min-width: 4px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 42%, transparent);
+  transition: width 180ms ease;
+}
+
+.runtime-install-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.runtime-install-progress-meta strong {
+  color: var(--text-strong);
 }
 
 .settings-modal-body,

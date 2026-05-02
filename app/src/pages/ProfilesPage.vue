@@ -10,8 +10,10 @@ import { useLogsStore } from '../stores/logs'
 import { useExtensionsStore } from '../stores/extensions'
 import { useBookmarksStore } from '../stores/bookmarks'
 import { useAutomationStore } from '../stores/automation'
+import { useSoftwareSettingsStore } from '../stores/software_settings'
 import type { Profile } from '../types/profile'
 import { emptyProfile } from '../types/profile'
+import { inferRuntimeKindFromPath, supportsFingerprintSettings } from '../utils/runtimeCapabilities'
 
 const profilesStore = useProfilesStore()
 const runtimeStore = useRuntimeStore()
@@ -19,6 +21,7 @@ const logsStore = useLogsStore()
 const extensionsStore = useExtensionsStore()
 const bookmarksStore = useBookmarksStore()
 const automationStore = useAutomationStore()
+const softwareSettingsStore = useSoftwareSettingsStore()
 
 const { profiles } = storeToRefs(profilesStore)
 const { scripts } = storeToRefs(automationStore)
@@ -26,19 +29,22 @@ const { scripts } = storeToRefs(automationStore)
 const editing = ref<Profile | null>(null)
 const settingsOpen = ref(false)
 const activeSettingsSection = ref<SettingsSection>('general')
-
-watch(editing, () => {
-  settingsOpen.value = false
-})
+const saveToast = ref('')
 const automationProfileId = ref<string | null>(null)
 let runtimeRefreshTimer: number | undefined
+let saveToastTimer: number | undefined
 
 const refreshRuntimeStates = async () => {
   await Promise.all(profiles.value.map((profile) => runtimeStore.refresh(profile.id)))
 }
 
 onMounted(async () => {
-  await Promise.all([profilesStore.fetchProfiles(), extensionsStore.fetchAll(), automationStore.refreshScripts()])
+  await Promise.all([
+    profilesStore.fetchProfiles(),
+    extensionsStore.fetchAll(),
+    automationStore.refreshScripts(),
+    softwareSettingsStore.loadRuntimeSettings(),
+  ])
   await Promise.all(
     profiles.value.map(async (profile) => {
       await runtimeStore.refresh(profile.id)
@@ -56,6 +62,9 @@ onMounted(async () => {
 onUnmounted(() => {
   if (runtimeRefreshTimer !== undefined) {
     window.clearInterval(runtimeRefreshTimer)
+  }
+  if (saveToastTimer !== undefined) {
+    window.clearTimeout(saveToastTimer)
   }
 })
 
@@ -78,6 +87,14 @@ const sortedProfiles = computed(() => profiles.value)
 const currentBookmarks = computed(() => (editing.value ? bookmarksStore.entries[editing.value.id] : []))
 const currentQuickLinks = computed(() => (editing.value ? bookmarksStore.quickLinks[editing.value.id] : []))
 const currentLogs = computed(() => (editing.value ? logsStore.entries[editing.value.id] : []))
+const editingRuntimeKind = computed(() => {
+  const override = editing.value?.browserPathOverride?.trim()
+  if (override) {
+    return inferRuntimeKindFromPath(override)
+  }
+  return softwareSettingsStore.defaultRuntimeKind || inferRuntimeKindFromPath(softwareSettingsStore.defaultBrowserPath)
+})
+const fingerprintSettingsEnabled = computed(() => supportsFingerprintSettings(editingRuntimeKind.value))
 const isRunningStatus = (status?: string) => status === 'starting' || status === 'running'
 
 const automationRows = computed(() => {
@@ -90,7 +107,28 @@ const automationRows = computed(() => {
   }))
 })
 
-const save = async (profile: Profile, originalId?: string) => {
+const showSaveToast = () => {
+  saveToast.value = 'Profile 已保存'
+  if (saveToastTimer !== undefined) {
+    window.clearTimeout(saveToastTimer)
+  }
+  saveToastTimer = window.setTimeout(() => {
+    saveToast.value = ''
+    saveToastTimer = undefined
+  }, 1800)
+}
+
+const openSettings = (profile: Profile) => {
+  editing.value = profile
+  activeSettingsSection.value = 'general'
+  settingsOpen.value = true
+}
+
+const closeSettings = () => {
+  settingsOpen.value = false
+}
+
+const save = async (profile: Profile, originalId?: string, closeAfterSave = false) => {
   const sourceId = originalId ?? profile.id
   const shouldRename = sourceId !== profile.id
   if (shouldRename) {
@@ -102,19 +140,28 @@ const save = async (profile: Profile, originalId?: string) => {
     }
   }
 
-  await profilesStore.saveProfile(profile, sourceId)
-  if (shouldRename) {
-    runtimeStore.renameProfile(sourceId, profile.id)
-    logsStore.renameProfile(sourceId, profile.id)
-    bookmarksStore.renameProfile(sourceId, profile.id)
-    automationStore.renameProfile(sourceId, profile.id)
-  }
+  try {
+    await profilesStore.saveProfile(profile, sourceId)
+    if (shouldRename) {
+      runtimeStore.renameProfile(sourceId, profile.id)
+      logsStore.renameProfile(sourceId, profile.id)
+      bookmarksStore.renameProfile(sourceId, profile.id)
+      automationStore.renameProfile(sourceId, profile.id)
+    }
 
-  editing.value = profilesStore.profiles.find((item) => item.id === profile.id) ?? profile
-  await runtimeStore.refresh(profile.id)
-  await logsStore.refresh(profile.id)
-  await bookmarksStore.refresh(profile.id)
-  await automationStore.refreshProfileStates(profile.id)
+    editing.value = profilesStore.profiles.find((item) => item.id === profile.id) ?? profile
+    await runtimeStore.refresh(profile.id)
+    await logsStore.refresh(profile.id)
+    await bookmarksStore.refresh(profile.id)
+    await automationStore.refreshProfileStates(profile.id)
+    showSaveToast()
+    if (closeAfterSave) {
+      settingsOpen.value = false
+    }
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : String(error))
+    throw error
+  }
 }
 
 const saveBookmarks = async (entries: { title: string; url: string }[]) => {
@@ -219,7 +266,7 @@ const openAutomationDir = async () => {
             {{ isRunningStatus(runtimeStore.states[profile.id]?.status) ? '停止' : '启动' }}
           </button>
           <button class="secondary-button" @click="toggleAutomationMenu(profile)">自动化</button>
-          <button class="secondary-button" @click="editing = profile; settingsOpen = true">设置</button>
+          <button class="secondary-button" @click="openSettings(profile)">设置</button>
         </div>
       </article>
 
@@ -269,6 +316,8 @@ const openAutomationDir = async () => {
       </p>
     </section>
 
+    <div v-if="saveToast" class="profile-save-toast success-text">{{ saveToast }}</div>
+
     <ProfileSettingsModal
       :open="settingsOpen"
       :profile="editing"
@@ -278,7 +327,8 @@ const openAutomationDir = async () => {
       :bookmarks="currentBookmarks"
       :quick-links="currentQuickLinks"
       :extensions="extensionsStore.items"
-      @close="settingsOpen = false"
+      :fingerprint-settings-enabled="fingerprintSettingsEnabled"
+      @close="closeSettings"
       @update:section="activeSettingsSection = $event"
       @save="save"
       @save-bookmarks="saveBookmarks"

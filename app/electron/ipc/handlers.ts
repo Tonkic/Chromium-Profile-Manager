@@ -4,6 +4,7 @@ import { isCommandName, type CommandName, type CommandPayload } from './contract
 import * as automation from '../services/automation.js'
 import * as bookmarks from '../services/bookmarks.js'
 import * as extensions from '../services/extensions.js'
+import * as fingerprint from '../services/fingerprint.js'
 import * as logs from '../services/logs.js'
 import * as profiles from '../services/profiles.js'
 import * as profileTransfer from '../services/profile_transfer.js'
@@ -80,8 +81,12 @@ const handleCommand = async (command: CommandName, payload: CommandPayload) => {
       return runtime.stopProfile(stringField(payload, 'profileId'))
     case 'get_runtime_state':
       return runtime.getRuntimeState(stringField(payload, 'profileId'))
+    case 'test_fingerprint_user_agent_url':
+      return { userAgent: await fingerprint.fetchUserAgentFromUrl(stringField(payload, 'url')) }
     case 'list_runtime_releases':
       return runtimeManager.listRuntimeReleases()
+    case 'list_installed_runtimes':
+      return runtimeManager.listInstalledRuntimes()
     case 'install_runtime_release':
       return runtimeManager.installRuntimeRelease(objectField<runtimeManager.RuntimeReleaseAsset>(payload, 'asset'))
     case 'get_runtime_install_state':

@@ -1,31 +1,35 @@
 <script setup lang="ts">
-export type SettingsSection = 'general' | 'launch' | 'extensions' | 'bookmarks' | 'logs'
+export type SettingsSection = 'general' | 'fingerprint' | 'launch' | 'extensions' | 'bookmarks' | 'logs'
 
 const props = defineProps<{
   modelValue: SettingsSection
+  fingerprintEnabled?: boolean
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: SettingsSection]
 }>()
 
-const sections: Array<{
+const allSections: Array<{
   key: SettingsSection
   label: string
   children?: string[]
 }> = [
   { key: 'general', label: '常规' },
-  { key: 'launch', label: '启动', children: ['路径配置', '启动参数'] },
+  { key: 'fingerprint', label: '指纹设置', children: ['User-Agent', '启动参数'] },
+  { key: 'launch', label: '启动', children: ['路径配置', '运行状态'] },
   { key: 'extensions', label: '扩展', children: ['已安装扩展', '导入扩展'] },
   { key: 'bookmarks', label: '书签', children: ['书签导入', '快捷链接'] },
   { key: 'logs', label: '日志', children: ['运行日志', '错误定位'] },
 ]
+
+const sections = () => allSections.filter((section) => section.key !== 'fingerprint' || props.fingerprintEnabled)
 </script>
 
 <template>
   <nav class="settings-nav" aria-label="设置分类导航">
     <button
-      v-for="section in sections"
+      v-for="section in sections()"
       :key="section.key"
       :class="['settings-nav-item', { active: props.modelValue === section.key }]"
       @click="emit('update:modelValue', section.key)"

@@ -3,6 +3,29 @@ export interface ProfileExtensionRef {
   enabled: boolean
 }
 
+export type FingerprintSource = 'none' | 'text' | 'url' | 'json'
+export type DisableSpoofingTarget = 'font' | 'audio' | 'canvas' | 'clientrects' | 'gpu'
+
+export interface FingerprintLaunchSettings {
+  seed?: string
+  platform?: '' | 'windows' | 'linux' | 'macos'
+  platformVersion?: string
+  brand?: string
+  brandVersion?: string
+  hardwareConcurrency?: string
+  disableNonProxiedUdp?: boolean
+  disableSpoofing?: DisableSpoofingTarget[]
+}
+
+export interface FingerprintSettings {
+  enabled?: boolean
+  source?: FingerprintSource
+  userAgentUrl?: string
+  userAgentText?: string
+  jsonText?: string
+  launch?: FingerprintLaunchSettings
+}
+
 export interface Profile {
   id: string
   name: string
@@ -16,6 +39,7 @@ export interface Profile {
   windowSize?: [number, number]
   extensions: ProfileExtensionRef[]
   extraArgs: string[]
+  fingerprint?: FingerprintSettings
   bookmarkSetId?: string
   createdAt: string
   updatedAt: string
@@ -33,6 +57,23 @@ export const emptyProfile = (): Profile => ({
   windowSize: [1400, 900],
   extensions: [],
   extraArgs: [],
+  fingerprint: {
+    enabled: false,
+    source: 'none',
+    userAgentUrl: '',
+    userAgentText: '',
+    jsonText: '',
+    launch: {
+      seed: '',
+      platform: '',
+      platformVersion: '',
+      brand: '',
+      brandVersion: '',
+      hardwareConcurrency: '',
+      disableNonProxiedUdp: true,
+      disableSpoofing: [],
+    },
+  },
   bookmarkSetId: '',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),

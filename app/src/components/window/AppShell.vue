@@ -45,11 +45,6 @@ const currentSection = computed(() => sections.find((section) => section.key ===
               <small>{{ section.description }}</small>
             </button>
           </nav>
-
-          <div class="app-nav-footer">
-            <span>Local Chromium Workspace</span>
-            <small>Profiles · Automation · Runtime</small>
-          </div>
         </aside>
 
         <section class="app-main-column">
