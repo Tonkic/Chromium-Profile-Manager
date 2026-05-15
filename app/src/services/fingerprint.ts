@@ -1,8 +1,7 @@
+import type { CommandResult } from '../../electron/ipc/contracts'
 import { tauriInvoke } from './tauri'
 
-export interface FingerprintUserAgentResult {
-  userAgent: string
-}
+export type FingerprintUserAgentResult = CommandResult<'test_fingerprint_user_agent_url'>
 
 export const testFingerprintUserAgentUrl = (url: string) =>
-  tauriInvoke<FingerprintUserAgentResult>('test_fingerprint_user_agent_url', { url })
+  tauriInvoke('test_fingerprint_user_agent_url', { url })

@@ -519,12 +519,14 @@ body::-webkit-scrollbar,
 
 .profiles-detail-content,
 .software-settings-page {
+  height: 100%;
   padding: 28px;
   display: flex;
   flex-direction: column;
   gap: 24px;
   overflow: auto;
   min-height: 0;
+  max-height: 100%;
 }
 
 .settings-hero-card {

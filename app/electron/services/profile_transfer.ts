@@ -4,10 +4,21 @@ import { existsSync } from 'node:fs'
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import type { Profile } from './types.js'
-import { logsRoot, profilesRoot } from './paths.js'
+import type { ExportProfileArchiveResult, ImportProfileArchiveResult, Profile } from './types.js'
 import { createProfile, getProfile, listProfiles, normalizeProfileRuntime } from './profiles.js'
 import { clearImportedRuntimeState } from './user_data.js'
+import {
+  BOOKMARKS_FILE_NAME,
+  PROFILE_ARCHIVE_FILE_NAMES,
+  PROFILE_FILE_NAME,
+  QUICK_LINKS_FILE_NAME,
+  USER_DATA_DIR_NAME,
+  profileDir,
+  profileLogPath,
+  profilePath,
+  profileUserDataDir,
+  readJsonFile,
+} from './profile_workspace.js'
 
 interface ProfileArchiveManifest {
   version: 1
@@ -16,25 +27,6 @@ interface ProfileArchiveManifest {
   includesUserData?: boolean
   hasUserData?: boolean
 }
-
-export interface ExportProfileArchiveResult {
-  profileId: string
-  filePath: string
-  includesUserData: boolean
-  hasUserData: boolean
-}
-
-export interface ImportProfileArchiveResult {
-  archivePath: string
-  profile?: Profile
-  hasUserData: boolean
-  restoredUserData: boolean
-  error?: string
-}
-
-const profileDir = (profileId: string) => path.join(profilesRoot(), profileId)
-const profileLogPath = (profileId: string) => path.join(logsRoot(), `${profileId}.log`)
-const profileUserDataDir = (profileId: string) => path.join(profileDir(profileId), 'user-data')
 
 const safeProfileId = (value: string) => value.trim().replace(/[^a-zA-Z0-9._-]/g, '-')
 const safeArchiveFileName = (value: string) => `${safeProfileId(value) || 'profile'}.zip`
@@ -77,7 +69,7 @@ const exportArchiveToPath = async (
   outputPath: string,
   includeUserData: boolean,
 ): Promise<ExportProfileArchiveResult> => {
-  const profileJsonPath = path.join(profileDir(profileId), 'profile.json')
+  const profileJsonPath = profilePath(profileId)
   if (!existsSync(profileJsonPath)) {
     throw new Error('请先保存这个 Profile，再导出。')
   }
@@ -103,7 +95,7 @@ const exportArchiveToPath = async (
     ),
   )
 
-  for (const fileName of ['profile.json', 'bookmarks.json', 'quick-links.json']) {
+  for (const fileName of PROFILE_ARCHIVE_FILE_NAMES) {
     const filePath = path.join(profileDir(profileId), fileName)
     if (existsSync(filePath)) {
       zip.addLocalFile(filePath, 'profile')
@@ -138,12 +130,12 @@ const importArchiveAtPath = async (archivePath: string): Promise<ImportProfileAr
     hasUserData = archiveHasUserData(zip)
     zip.extractAllTo(tempDir, true)
 
-    const profileJsonPath = path.join(tempDir, 'profile', 'profile.json')
+    const profileJsonPath = path.join(tempDir, 'profile', PROFILE_FILE_NAME)
     if (!existsSync(profileJsonPath)) {
       throw new Error('profile.json not found in archive')
     }
 
-    const profile = normalizeProfileRuntime(JSON.parse(await readFile(profileJsonPath, 'utf-8')) as Profile)
+    const profile = normalizeProfileRuntime(await readJsonFile<Profile>(profileJsonPath))
     const importedId = await uniqueProfileId(safeProfileId(profile.id || 'imported-profile'))
 
     const importedProfile: Profile = normalizeProfileRuntime({
@@ -155,9 +147,9 @@ const importArchiveAtPath = async (archivePath: string): Promise<ImportProfileAr
       updatedAt: new Date().toISOString(),
     })
 
-    const targetProfileDir = path.join(profilesRoot(), importedId)
+    const targetProfileDir = profileDir(importedId)
     await mkdir(targetProfileDir, { recursive: true })
-    for (const fileName of ['bookmarks.json', 'quick-links.json']) {
+    for (const fileName of [BOOKMARKS_FILE_NAME, QUICK_LINKS_FILE_NAME]) {
       const sourcePath = path.join(tempDir, 'profile', fileName)
       if (existsSync(sourcePath)) {
         await writeFile(path.join(targetProfileDir, fileName), await readFile(sourcePath))
@@ -168,9 +160,9 @@ const importArchiveAtPath = async (archivePath: string): Promise<ImportProfileAr
 
     let restoredUserData = false
     if (hasUserData) {
-      const sourceUserDataPath = path.join(tempDir, 'profile', 'user-data')
+      const sourceUserDataPath = path.join(tempDir, 'profile', USER_DATA_DIR_NAME)
       if (existsSync(sourceUserDataPath)) {
-        const targetUserDataPath = path.join(targetProfileDir, 'user-data')
+        const targetUserDataPath = path.join(targetProfileDir, USER_DATA_DIR_NAME)
         await rm(targetUserDataPath, { recursive: true, force: true })
         await cp(sourceUserDataPath, targetUserDataPath, { recursive: true })
         await clearImportedRuntimeState(targetUserDataPath)
@@ -197,7 +189,7 @@ const importArchiveAtPath = async (archivePath: string): Promise<ImportProfileAr
 }
 
 export const exportProfileArchive = async (profileId: string) => {
-  const profileJsonPath = path.join(profileDir(profileId), 'profile.json')
+  const profileJsonPath = profilePath(profileId)
   if (!existsSync(profileJsonPath)) {
     throw new Error('请先保存这个 Profile，再导出。')
   }

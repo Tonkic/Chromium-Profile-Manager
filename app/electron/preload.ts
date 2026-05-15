@@ -1,13 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { isCommandName } from './ipc/contracts.js'
+import { isCommandName, type AppInvoke } from './ipc/contracts.js'
 
 const api = {
-  invoke: <T>(command: string, payload?: Record<string, unknown>): Promise<T> => {
+  invoke: ((command: string, payload?: unknown) => {
     if (!isCommandName(command)) {
       return Promise.reject(new Error(`Unknown command: ${command}`))
     }
-    return ipcRenderer.invoke('app:invoke', command, payload) as Promise<T>
-  },
+    return ipcRenderer.invoke('app:invoke', command, payload)
+  }) as AppInvoke,
   windowControls: {
     minimize: () => ipcRenderer.invoke('window:minimize') as Promise<void>,
     toggleMaximize: () => ipcRenderer.invoke('window:toggle-maximize') as Promise<boolean>,

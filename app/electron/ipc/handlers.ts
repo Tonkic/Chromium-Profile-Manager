@@ -1,6 +1,6 @@
 import { ipcMain, type IpcMainInvokeEvent } from 'electron'
-import type { BookmarkEntry, Profile, QuickLink, SoftwareSettings } from '../services/types.js'
-import { isCommandName, type CommandName, type CommandPayload } from './contracts.js'
+import type { BookmarkEntry, Profile, QuickLink, RuntimeReleaseAsset, SoftwareSettings } from '../services/types.js'
+import { isCommandName, type CommandName } from './contracts.js'
 import * as automation from '../services/automation.js'
 import * as bookmarks from '../services/bookmarks.js'
 import * as extensions from '../services/extensions.js'
@@ -12,39 +12,42 @@ import * as runtime from '../services/runtime.js'
 import * as runtimeManager from '../services/runtime_manager.js'
 import * as softwareSettings from '../services/software_settings.js'
 
-const stringField = (payload: CommandPayload, key: string) => {
-  const value = payload?.[key]
+const payloadField = (payload: unknown, key: string) =>
+  payload && typeof payload === 'object' ? (payload as Record<string, unknown>)[key] : undefined
+
+const stringField = (payload: unknown, key: string) => {
+  const value = payloadField(payload, key)
   if (typeof value !== 'string') {
     throw new Error(`${key} is required`)
   }
   return value
 }
 
-const objectField = <T>(payload: CommandPayload, key: string) => {
-  const value = payload?.[key]
+const objectField = <T>(payload: unknown, key: string) => {
+  const value = payloadField(payload, key)
   if (!value || typeof value !== 'object') {
     throw new Error(`${key} is required`)
   }
   return value as T
 }
 
-const arrayField = <T>(payload: CommandPayload, key: string) => {
-  const value = payload?.[key]
+const arrayField = <T>(payload: unknown, key: string) => {
+  const value = payloadField(payload, key)
   if (!Array.isArray(value)) {
     throw new Error(`${key} is required`)
   }
   return value as T[]
 }
 
-const booleanField = (payload: CommandPayload, key: string) => {
-  const value = payload?.[key]
+const booleanField = (payload: unknown, key: string) => {
+  const value = payloadField(payload, key)
   if (typeof value !== 'boolean') {
     throw new Error(`${key} is required`)
   }
   return value
 }
 
-const handleCommand = async (command: CommandName, payload: CommandPayload) => {
+const handleCommand = async (command: CommandName, payload: unknown) => {
   switch (command) {
     case 'list_profiles':
       return profiles.listProfiles()
@@ -88,7 +91,7 @@ const handleCommand = async (command: CommandName, payload: CommandPayload) => {
     case 'list_installed_runtimes':
       return runtimeManager.listInstalledRuntimes()
     case 'install_runtime_release':
-      return runtimeManager.installRuntimeRelease(objectField<runtimeManager.RuntimeReleaseAsset>(payload, 'asset'))
+      return runtimeManager.installRuntimeRelease(objectField<RuntimeReleaseAsset>(payload, 'asset'))
     case 'get_runtime_install_state':
       return runtimeManager.getRuntimeInstallState()
     case 'list_automation_scripts':

@@ -1,3 +1,4 @@
-export const tauriInvoke = async <T>(command: string, payload?: Record<string, unknown>): Promise<T> => {
-  return window.electronAPI.invoke<T>(command, payload)
-}
+import type { AppInvoke } from '../../electron/ipc/contracts'
+
+export const tauriInvoke = ((command: string, payload?: unknown) =>
+  window.electronAPI.invoke(command as never, payload as never)) as AppInvoke

@@ -1,49 +1,13 @@
-export interface ProfileExtensionRef {
-  id: string
-  enabled: boolean
-}
+import type { Profile } from '../../shared/types'
 
-export type FingerprintSource = 'none' | 'text' | 'url' | 'json'
-export type DisableSpoofingTarget = 'font' | 'audio' | 'canvas' | 'clientrects' | 'gpu'
-
-export interface FingerprintLaunchSettings {
-  seed?: string
-  platform?: '' | 'windows' | 'linux' | 'macos'
-  platformVersion?: string
-  brand?: string
-  brandVersion?: string
-  hardwareConcurrency?: string
-  disableNonProxiedUdp?: boolean
-  disableSpoofing?: DisableSpoofingTarget[]
-}
-
-export interface FingerprintSettings {
-  enabled?: boolean
-  source?: FingerprintSource
-  userAgentUrl?: string
-  userAgentText?: string
-  jsonText?: string
-  launch?: FingerprintLaunchSettings
-}
-
-export interface Profile {
-  id: string
-  name: string
-  note?: string
-  browserPath: string
-  browserPathOverride?: string
-  userDataDir: string
-  proxy?: string
-  lang?: string
-  timezone?: string
-  windowSize?: [number, number]
-  extensions: ProfileExtensionRef[]
-  extraArgs: string[]
-  fingerprint?: FingerprintSettings
-  bookmarkSetId?: string
-  createdAt: string
-  updatedAt: string
-}
+export type {
+  DisableSpoofingTarget,
+  FingerprintLaunchSettings,
+  FingerprintSettings,
+  FingerprintSource,
+  Profile,
+  ProfileExtensionRef,
+} from '../../shared/types'
 
 export const emptyProfile = (): Profile => ({
   id: '',

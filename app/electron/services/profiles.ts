@@ -1,12 +1,16 @@
-import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import path from 'node:path'
 import type { Profile } from './types.js'
-import { profilesRoot } from './paths.js'
 import { DEFAULT_BROWSER_PATH } from './software_settings.js'
+import {
+  deleteProfileDir,
+  listStoredProfiles,
+  profileDir,
+  profileExists,
+  readProfile,
+  renameProfileDir,
+  writeProfile as writeStoredProfile,
+} from './profile_workspace.js'
 
-const profilePath = (id: string) => path.join(profilesRoot(), id, 'profile.json')
-const profileDir = (id: string) => path.join(profilesRoot(), id)
 const isLegacyDefaultBrowserPath = (value?: string) =>
   !value ||
   value.includes('runtime/ungoogled-chromium-146') ||
@@ -37,49 +41,32 @@ export const normalizeProfileRuntime = (profile: Profile): Profile => {
   }
 }
 
-const writeProfileToDir = async (dir: string, profile: Profile) => {
-  await mkdir(dir, { recursive: true })
-  await writeFile(path.join(dir, 'profile.json'), JSON.stringify(normalizeProfileRuntime(profile), null, 2), 'utf-8')
+const writeProfile = async (profile: Profile) => {
+  await writeStoredProfile(normalizeProfileRuntime(profile))
 }
 
-const readProfileFile = async (filePath: string) => {
-  const profile = JSON.parse(await readFile(filePath, 'utf-8')) as Profile
+const normalizeStoredProfile = async (profile: Profile) => {
   const normalized = normalizeProfileRuntime(profile)
   if (JSON.stringify(profile) !== JSON.stringify(normalized)) {
-    await writeFile(filePath, JSON.stringify(normalized, null, 2), 'utf-8')
+    await writeStoredProfile(normalized)
   }
   return normalized
 }
 
 export const listProfiles = async (): Promise<Profile[]> => {
-  const root = profilesRoot()
-  if (!existsSync(root)) {
-    return []
-  }
-  const entries = await readdir(root, { withFileTypes: true })
-  const profiles: Profile[] = []
-  for (const entry of entries) {
-    if (!entry.isDirectory()) {
-      continue
-    }
-    const filePath = path.join(root, entry.name, 'profile.json')
-    if (!existsSync(filePath)) {
-      continue
-    }
-    profiles.push(await readProfileFile(filePath))
-  }
+  const profiles = await Promise.all((await listStoredProfiles()).map(normalizeStoredProfile))
   return profiles.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 export const getProfile = async (id: string): Promise<Profile> => {
-  return readProfileFile(profilePath(id))
+  return normalizeStoredProfile(await readProfile(id))
 }
 
 export const createProfile = async (profile: Profile) => {
   if (!profile.id.trim()) {
     throw new Error('profile id is required')
   }
-  await writeProfileToDir(profileDir(profile.id), profile)
+  await writeProfile(profile)
 }
 
 export const updateProfile = async (originalId: string, profile: Profile) => {
@@ -90,10 +77,10 @@ export const updateProfile = async (originalId: string, profile: Profile) => {
     throw new Error('profile id is required')
   }
   if (originalId === profile.id) {
-    if (!existsSync(profilePath(originalId))) {
+    if (!profileExists(originalId)) {
       throw new Error('profile not found')
     }
-    await writeProfileToDir(profileDir(profile.id), profile)
+    await writeProfile(profile)
     return
   }
   const oldDir = profileDir(originalId)
@@ -104,13 +91,10 @@ export const updateProfile = async (originalId: string, profile: Profile) => {
   if (existsSync(newDir)) {
     throw new Error('target profile id already exists')
   }
-  await rename(oldDir, newDir)
-  await writeProfileToDir(newDir, profile)
+  await renameProfileDir(originalId, profile.id)
+  await writeProfile(profile)
 }
 
 export const deleteProfile = async (id: string) => {
-  const dir = profileDir(id)
-  if (existsSync(dir)) {
-    await rm(dir, { recursive: true, force: true })
-  }
+  await deleteProfileDir(id)
 }

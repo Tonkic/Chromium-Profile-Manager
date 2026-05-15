@@ -1,9 +1,11 @@
+import type { AppInvoke } from '../../electron/ipc/contracts'
+
 export {}
 
 declare global {
   interface Window {
     electronAPI: {
-      invoke: <T>(command: string, payload?: Record<string, unknown>) => Promise<T>
+      invoke: AppInvoke
       windowControls: {
         minimize: () => Promise<void>
         toggleMaximize: () => Promise<boolean>

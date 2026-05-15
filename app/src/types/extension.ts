@@ -1,5 +1,1 @@
-export interface ExtensionEntry {
-  id: string
-  kind: 'dir' | 'crx'
-  path: string
-}
+export type { ExtensionEntry } from '../../shared/types'
